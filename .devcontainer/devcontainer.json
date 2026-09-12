@@ -1,0 +1,8 @@
+{
+  "name": "BANU Feldornithologie-Trainer",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "forwardPorts": [5173],
+  "portsAttributes": { "5173": { "label": "Vite", "onAutoForward": "openBrowser" } },
+  "postCreateCommand": "npm install",
+  "customizations": { "vscode": { "extensions": ["esbenp.prettier-vscode"] } }
+}

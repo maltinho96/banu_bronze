@@ -1,0 +1,20 @@
+{
+  "name": "banu-feldornithologie-trainer",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "import-list": "node scripts/import-artenliste.mjs",
+    "fetch-audio": "node scripts/fetch-xc-audio.mjs"
+  },
+  "dependencies": {
+    "@fontsource/atkinson-hyperlegible": "^5.1.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "vite": "^6.3.0"
+  }
+}
