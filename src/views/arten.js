@@ -6,7 +6,7 @@ import { getBirdMedia, getHabitatImage, getAudio, banAudio, pinAudio, isPinned, 
 
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 const SND_LABEL = { song: 'Gesang', call: 'Ruf', drumming: 'Trommeln' };
-const DEFAULT_CFG = { mode: 'pruefung', type: 'gemischt', hab: 'alle', answer: 'tippen', weak: false };
+const DEFAULT_CFG = { mode: 'pruefung', type: 'gemischt', hab: 'alle', answer: 'tippen', weak: false, autoplay: true };
 
 export function mount(root) {
   const list = getSpeciesList();
@@ -34,6 +34,8 @@ export function mount(root) {
   habSelect.value = cfg.hab;
   const weakBox = h('input', { type: 'checkbox', id: 'weak', onchange: e => { cfg.weak = e.target.checked; save('artenCfg', cfg); } });
   weakBox.checked = cfg.weak;
+  const autoBox = h('input', { type: 'checkbox', id: 'autoplay', onchange: e => { cfg.autoplay = e.target.checked; save('artenCfg', cfg); } });
+  autoBox.checked = cfg.autoplay;
   const startBtn = h('button', { class: 'btn primary wide', onclick: start });
 
   const controls = h('section', { class: 'panel controls' },
@@ -46,6 +48,8 @@ export function mount(root) {
       seg('answer', [['tippen', 'Eintippen'], ['auswahl', 'Auswahl (4)']])),
     h('div', { class: 'ctrl row' }, habSelect,
       h('label', { class: 'check only-frei', for: 'weak' }, weakBox, 'Schwache Arten bevorzugen')),
+    h('div', { class: 'ctrl only-quiz' },
+      h('label', { class: 'check', for: 'autoplay' }, autoBox, 'Ton automatisch abspielen')),
     startBtn,
   );
 
@@ -198,7 +202,7 @@ export function mount(root) {
       fcHab.textContent = HAB_LABEL[hk] || '—';
       audioZone.hidden = false;
       setMedia(null, 'Lade Lebensraumfoto …', 'cover');
-      const [img] = await Promise.all([hk ? getHabitatImage(hk) : null, loadAudioFor(sp, false)]);
+      const [img] = await Promise.all([hk ? getHabitatImage(hk) : null, loadAudioFor(sp, cfg.autoplay)]);
       if (my !== token) return;
       setMedia(img, 'Kein Lebensraumfoto – hör einfach genau hin', 'cover');
     } else {

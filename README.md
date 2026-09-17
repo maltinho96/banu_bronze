@@ -36,7 +36,7 @@ Lern-App fürs Handy: Artenkenntnis (Foto + Ton), äußere Topografie (antippbar
 
 | Datei | Inhalt |
 |---|---|
-| `src/views/arten.js` | Artentrainer: Prüfung (30 Arten, ½ Foto, ½ Ton), Üben mit Schwachstellen-Gewichtung, Artenliste zum Durchhören |
+| `src/views/arten.js` | Artentrainer: Prüfung (30 Arten, ½ Foto, ½ Ton), Üben mit Schwachstellen-Gewichtung, Artenliste zum Durchhören, Ton-Autostart |
 | `src/views/topografie.js` | Topografie: Erkunden, „Wo ist …?“, Benennen, Am Foto, Begriffsübersicht – Bronze bzw. Silber/Gold |
 | `src/views/brutzeit.js` | Brutzeitcodes: Szenario → Code, A/B/C, Verwechslungspaare, Code → Bedeutung |
 | `src/views/fragen.js` | Wissensfragen (Katalog + aus der Artenliste generiert), Brutzeitcode- und Rote-Liste-Tabellen |

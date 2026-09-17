@@ -46,7 +46,7 @@ export function mount(root) {
       h('p', { class: 'muted small' }, 'Deine Ergebnisse bleiben im Browser dieses Geräts gespeichert.'),
       h('button', { class: 'btn ghost small', type: 'button', onclick: () => {
         if (!confirm('Alle Lernstatistiken löschen?')) return;
-        ['artStats', 'topoStats', 'qStats', 'bzStats'].forEach(remove); msg.textContent = 'Statistiken gelöscht.';
+        ['artStats', 'topoStats', 'qStats', 'bzStats'].forEach(remove); msg.textContent = 'Statistiken gelöscht. Bild- und Tonauswahl bleiben erhalten.';
       } }, 'Statistiken zurücksetzen')),
     h('section', { class: 'panel' },
       h('h2', {}, 'Zur Prüfung (Bronze)'),

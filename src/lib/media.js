@@ -227,7 +227,9 @@ export async function getHabitatImage(key) {
   return null;
 }
 
-/* ---------------- Ton: Sperr- und Merkliste ---------------- */
+/* ---------------- Ton: Sperr- und Merkliste ----------------
+ * „Passt nicht“ blendet eine Aufnahme dauerhaft aus, „Als Standard merken“
+ * setzt sie bei dieser Art an die erste Stelle. Gilt nur auf diesem Gerät. */
 export function banAudio(sci, src) {
   const b = load('audioBan', {});
   (b[sci] ||= []).includes(src) || b[sci].push(src);
