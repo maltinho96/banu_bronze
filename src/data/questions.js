@@ -6,6 +6,7 @@
 import { HAB_LABEL } from './species-builtin.js';
 import { CODES, CODE_MAP, SCENARIOS } from './brutzeit.js';
 import { EXTRA } from './questions-extra.js';
+import { BRONZE } from './questions-bronze.js';
 import { shuffle, pick } from '../lib/util.js';
 
 export const CATS = {
@@ -146,7 +147,7 @@ const BASE = [
     a: 'Ringinschrift (Beringungszentrale + Nummer) vollständig notieren, Fundort (Koordinaten), Datum, Fundumstände und Zustand festhalten, ggf. Foto. Meldung an die auf dem Ring genannte Beringungszentrale (z. B. Vogelwarte Helgoland, Radolfzell, Beringungszentrale Hiddensee) – meist per Online-Formular. Der Ring kann ggf. eingeschickt werden.' },
 ];
 
-export const STATIC = [...BASE, ...EXTRA];
+export const STATIC = [...BASE, ...EXTRA, ...BRONZE];
 
 /* ---------- Generierte Fragen ---------- */
 function mc(id, lv, cat, q, correct, distractors, a) {

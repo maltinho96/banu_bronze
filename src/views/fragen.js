@@ -69,10 +69,18 @@ export function mount(root, ctx) {
     card.scrollIntoView({ behavior: 'smooth' });
   }
 
+  /* Antwortreihenfolge bei jeder Anzeige neu mischen – in den Daten steht die
+   * richtige Antwort oft an erster Stelle. „ok“ wird passend umgerechnet. */
+  function shuffled(q) {
+    if (!q.opts) return q;
+    const order = shuffle(q.opts.map((_, k) => k));
+    return { ...q, opts: order.map(k => q.opts[k]), ok: q.ok.map(k => order.indexOf(k)) };
+  }
+
   function show() {
     card.innerHTML = '';
     if (i >= session.length) return end();
-    const q = session[i];
+    const q = shuffled(session[i]);
     const head = h('p', { class: 'qmeta' }, `${i + 1} / ${session.length} · ${CATS[q.cat]}`);
     const qtext = h('h2', { class: 'qtext' }, q.q);
     const hint = q.type === 'multi' ? h('p', { class: 'muted small' }, 'Mehrere Antworten können richtig sein.') : null;

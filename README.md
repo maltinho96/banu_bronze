@@ -43,6 +43,7 @@ Lern-App fürs Handy: Artenkenntnis (Foto + Ton), äußere Topografie (antippbar
 | `src/data/topography.js` | Begriffe, Erklärungen, SVG-Zeichnungen (eigene, schematische) |
 | `src/data/questions.js` | Fragenkatalog und Fragengeneratoren |
 | `src/data/questions-extra.js` | zweiter Fragenpool – hier eigene Fragen ergänzen |
+| `src/data/questions-bronze.js` | 105 Fragen nur für Bronze: Topografie, Familien und Artengruppen, Lebensräume, Recht, Brutzeitcodes |
 | `src/data/brutzeit.js` | Brutzeitcodes und 45 Feldszenarien |
 | `src/data/topo-examples.js` | echte Arten als Beispiel je Topografie-Begriff |
 | `src/data/species-builtin.js` | inoffizielle Übungsliste (Fallback) |
