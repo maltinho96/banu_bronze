@@ -313,3 +313,41 @@ details.cur { border: 1px solid var(--line); border-radius: var(--r); background
 .cur-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .cur-add input { flex: 1 1 190px; min-width: 0; }
 .msg.small { font-size: .82rem; flex-basis: 100%; }
+
+/* ---------- Systematik ---------- */
+.syslink { display: inline-block; margin-top: 4px; font-size: .92rem; font-weight: 700; color: var(--accent); }
+.sys-tip { margin: 10px 0 0; }
+.sys-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+details.sys-ord { border: 1px solid var(--line); border-radius: var(--r); margin-bottom: 8px; background: var(--paper); }
+details.sys-ord > summary, details.sys-fam > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+details.sys-ord > summary::-webkit-details-marker, details.sys-fam > summary::-webkit-details-marker { display: none; }
+details.sys-ord > summary { padding: 12px 14px; min-height: 56px; }
+details.sys-ord > summary::before, details.sys-fam > summary::before {
+  content: ''; flex: none; width: 8px; height: 8px; border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3);
+  transform: rotate(-45deg); transition: transform .15s; margin-right: 2px;
+}
+details[open] > summary::before { transform: rotate(45deg); }
+.sys-name { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.sys-name i { color: var(--ink-2); font-size: .85rem; }
+.sys-ord > summary .sys-name b { font-size: 1.05rem; }
+.sys-count { font-size: .8rem; color: var(--ink-3); white-space: nowrap; }
+.sys-note { margin: 0 14px 10px 34px; font-size: .88rem; color: var(--ink-2); }
+details.sys-fam { margin: 0 10px 8px 22px; border-left: 3px solid var(--accent-soft); border-radius: 0 8px 8px 0; background: var(--field); }
+details.sys-fam > summary { padding: 10px 12px; min-height: 48px; }
+details.sys-fam[open] { border-left-color: var(--accent); }
+details.sys-fam .sys-note { margin-left: 30px; }
+.sys-sp { list-style: none; margin: 0; padding: 0 12px 10px 30px; display: flex; flex-direction: column; gap: 6px; }
+.sys-sp li { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.sys-thumb { width: 52px; height: 40px; object-fit: cover; border-radius: 6px; background: var(--line); flex: none; opacity: .35; }
+.sys-thumb.loaded { opacity: 1; }
+.sys-cover {
+  appearance: none; font: inherit; font-size: .92rem; color: var(--ink-3); cursor: pointer; text-align: left;
+  border: 1px dashed var(--ink-3); border-radius: 6px; background: var(--paper); padding: 6px 10px; flex: 1; min-height: 40px;
+}
+.sys-name.revealed b { color: var(--accent); }
+.sys-quiz-img { width: 100%; max-height: min(40vh, 320px); object-fit: contain; display: block; background: var(--field); border-radius: 8px; margin-bottom: 10px; min-height: 120px; }
+.sys-path { font-size: 1rem; margin: 6px 0; line-height: 1.6; }
+.sys-path i { color: var(--ink-2); font-size: .85rem; }
+.sys-answer { display: flex; gap: 8px; margin: 10px 0; }

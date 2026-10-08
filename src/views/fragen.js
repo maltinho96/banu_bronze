@@ -39,6 +39,7 @@ export function mount(root, ctx) {
     h('div', { class: 'ctrl' }, h('span', { class: 'lbl' }, 'Themen'), catBox),
     h('div', { class: 'ctrl row' }, nSel, h('label', { class: 'check', for: 'qweak' }, weakBox, 'Falsch beantwortete bevorzugen')),
     poolInfo,
+    h('a', { class: 'syslink', href: '#/systematik' }, 'Familien und Ordnungen gezielt üben: Systematik'),
     h('button', { class: 'btn primary wide', onclick: start }, 'Fragen starten'));
   info();
 
