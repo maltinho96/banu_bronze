@@ -215,17 +215,47 @@ export function mount(root) {
 
   /* ---------------- Einordnen: Art → Ordnung → Familie ---------------- */
   let right = 0, total = 0;
+
+  /* Ausgeglichene Ziehung: Erst wird eine ORDNUNG aus einem Beutel gezogen –
+   * jede Ordnung genau einmal pro Runde, schwache Ordnungen ein zweites Mal.
+   * Erst danach Familie und Art innerhalb der Ordnung. So kommen die
+   * Sperlingsvögel nicht öfter dran als Lappentaucher oder Eulen. */
+  const drawers = {};
+  function drawOrder(mode) {
+    const d = (drawers[mode] ||= { bag: [], last: null, round: 0, size: 0 });
+    if (!d.bag.length) {
+      const s = stats('sysStats');
+      const bag = tree.map(o => o.name);
+      tree.forEach(o => {
+        const e = s[`o|${o.name}`];
+        if (e && (e.last === 0 || e.w / (e.r + e.w) > 0.3)) bag.push(o.name);
+      });
+      // so lange mischen, bis nirgends dieselbe Ordnung zweimal hintereinander kommt –
+      // auch nicht über die Rundengrenze (gezogen wird vom Ende her)
+      const ok = b => b.every((x, i) => i === 0 || x !== b[i - 1]) && b[b.length - 1] !== d.last;
+      let tries = 0;
+      do { d.bag = shuffle(bag.slice()); } while (!ok(d.bag) && ++tries < 200);
+      d.round++; d.size = d.bag.length;
+    }
+    const name = d.bag.pop();
+    d.last = name;
+    return { ord: tree.find(o => o.name === name), pos: d.size - d.bag.length, size: d.size, round: d.round };
+  }
+  const roundNote = r => `Runde ${r.round} · ${r.pos} von ${r.size}`;
+
   function quizPlace() {
     const s = stats('sysStats');
-    const sp = weightedSample(list.species, 1, x => weight(s[`ord|${x.sci}`]))[0];
-    const ordNode = tree.find(o => o.name === sp.ord);
+    const r = drawOrder('einordnen');
+    const ordNode = r.ord;
+    const famNode = weightedSample(ordNode.families, 1, f => weight(s[`fam|${f.name}`]))[0];
+    const sp = weightedSample(famNode.species, 1, x => weight(s[`ord|${x.sci}`]))[0];
     const card = h('section', { class: 'card qcard' });
     const img = h('img', { alt: '', class: 'sys-quiz-img' });
     const cur = getCuratedPhoto(`art:${sp.sci}`);
     (cur ? Promise.resolve({ thumb: cur.thumb }) : getBirdMedia(sp)).then(m => { if (m.thumb) img.src = m.thumb; });
     const step = h('div', {});
     const score = h('p', { class: 'score' }, total ? `${right} von ${total} richtig` : '');
-    card.append(img, h('h2', { class: 'rname' }, sp.de), h('p', { class: 'rsci' }, sp.sci), step);
+    card.append(h('p', { class: 'qmeta' }, roundNote(r)), img, h('h2', { class: 'rname' }, sp.de), h('p', { class: 'rsci' }, sp.sci), step);
     body.append(card, score);
 
     let okOrd = false;
@@ -263,6 +293,7 @@ export function mount(root) {
       const ok = okOrd && okFam;
       total++; if (ok) right++;
       recordResult('sysStats', `ord|${sp.sci}`, ok);
+      recordResult('sysStats', `o|${sp.ord}`, ok);
       score.textContent = `${right} von ${total} richtig`;
       const fam = ordNode?.families.find(f => f.name === sp.fam);
       const siblings = (fam?.species || []).filter(x => x.sci !== sp.sci).map(x => x.de);
@@ -282,7 +313,8 @@ export function mount(root) {
   /* ---------------- Nenne eine Art (wie in der Prüfung) ---------------- */
   function quizName() {
     const s = stats('sysStats');
-    const fam = weightedSample(allFamilies, 1, f => weight(s[`fam|${f.name}`]))[0];
+    const r = drawOrder('nennen');
+    const fam = { ...weightedSample(r.ord.families, 1, f => weight(s[`fam|${f.name}`]))[0], order: r.ord.name };
     const card = h('section', { class: 'card qcard' });
     const input = h('input', { type: 'text', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', enterkeyhint: 'done', placeholder: 'Deutscher oder wissenschaftlicher Name' });
     const result = h('div', {});
@@ -301,6 +333,7 @@ export function mount(root) {
       const ok = !!hit;
       total++; if (ok) right++;
       recordResult('sysStats', `fam|${fam.name}`, ok);
+      recordResult('sysStats', `o|${fam.order}`, ok);
       score.textContent = `${right} von ${total} richtig`;
       result.append(
         h('p', { class: `verdict ${ok ? 'ok' : 'no'}` },
@@ -312,7 +345,7 @@ export function mount(root) {
     };
     input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); check(); } });
     card.append(
-      h('p', { class: 'qmeta' }, `Ordnung: ${fam.order}`),
+      h('p', { class: 'qmeta' }, `${roundNote(r)} · Ordnung: ${fam.order}`),
       h('h2', { class: 'qtext' }, `Nennen Sie eine Art aus der Familie ${fam.name}.`),
       fam.info ? h('p', { class: 'rsci' }, fam.info.sci) : '',
       h('div', { class: 'row sys-answer' }, input, h('button', { class: 'btn', type: 'button', onclick: check }, 'Prüfen')),
