@@ -351,3 +351,66 @@ details.sys-fam .sys-note { margin-left: 30px; }
 .sys-path { font-size: 1rem; margin: 6px 0; line-height: 1.6; }
 .sys-path i { color: var(--ink-2); font-size: .85rem; }
 .sys-answer { display: flex; gap: 8px; margin: 10px 0; }
+
+/* ---------- Systematik: Baum mit Ästen ---------- */
+.clad-wrap { overflow-x: auto; padding: 4px 0 8px; -webkit-overflow-scrolling: touch; }
+.clad, .clad ul { list-style: none; margin: 0; padding: 0; }
+.clad ul { margin-left: 16px; }
+.clad li { position: relative; padding: 4px 0 4px 18px; }
+.clad > li { padding-left: 0; }
+/* Ast: senkrechte Linie vom Elternknoten + waagerechter Abzweig */
+.clad ul > li::before {
+  content: ''; position: absolute; left: 0; top: 0; height: 26px; width: 14px;
+  border-left: 2px solid var(--clad-line); border-bottom: 2px solid var(--clad-line); border-bottom-left-radius: 8px;
+}
+.clad ul > li::after {
+  content: ''; position: absolute; left: 0; top: 26px; bottom: 0; border-left: 2px solid var(--clad-line);
+}
+.clad ul > li:last-child::after { display: none; }
+.clad li.collapsed > ul { display: none; }
+:root { --clad-line: #9fb5a4; }
+
+.clad-node {
+  appearance: none; font: inherit; text-align: left; cursor: pointer; color: var(--ink);
+  display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;
+  border-radius: 10px; padding: 7px 11px; min-height: 40px; max-width: 100%;
+}
+.clad-t { font-weight: 700; }
+.clad-s { font-style: italic; font-size: .82rem; color: var(--ink-2); }
+.clad-n { font-size: .75rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.clad-grp { background: var(--paper); border: 2px solid var(--accent); }
+.clad-grp .clad-t { color: var(--accent); }
+.clad-grp.is-rest { border-style: dashed; border-color: var(--ink-3); }
+.clad-grp.is-rest .clad-t { color: var(--ink-2); }
+.clad-ord { background: var(--accent); border: 2px solid var(--accent); }
+.clad-ord .clad-t, .clad-ord .clad-s, .clad-ord .clad-n { color: #fff; }
+.clad-fam { background: var(--accent-soft); border: 1px solid #cfe0cf; }
+.clad-fam .clad-t { color: var(--accent); font-weight: 700; }
+.clad-sp { cursor: default; padding: 3px 0; min-height: 0; gap: 10px; align-items: center; flex-wrap: nowrap; }
+.clad-sp .sys-thumb { width: 44px; height: 34px; }
+.clad-node[aria-expanded]::before {
+  content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg); align-self: center; margin-right: 2px; opacity: .7; transition: transform .15s;
+}
+.clad-ord[aria-expanded]::before { color: #fff; }
+.clad-node[aria-expanded="true"]::before { transform: rotate(45deg); }
+.clad-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0 0 6px; }
+.clad-key { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: middle; margin-left: 6px; }
+.clad-key:first-child { margin-left: 0; }
+.clad-key-grp { border: 2px solid var(--accent); background: var(--paper); }
+.clad-key-ord { background: var(--accent); }
+.clad-key-fam { background: var(--accent-soft); border: 1px solid #cfe0cf; }
+.clad-info[hidden] { display: none; }
+.clad-info { padding-right: 40px !important; }
+.clad-close { position: absolute; top: 4px; right: 4px; appearance: none; border: 0; background: none; font-size: 1.5rem; line-height: 1;
+  color: var(--ink-3); width: 36px; height: 36px; cursor: pointer; }
+.clad-info { position: sticky; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 6px); background: var(--paper);
+  border: 1px solid var(--line); border-radius: var(--r); padding: 4px 12px; margin-top: 10px; box-shadow: 0 -4px 14px rgba(29,39,33,.08); }
+.clad-info p { margin: 6px 0; }
+
+@media (max-width: 480px) {
+  .clad ul { margin-left: 10px; }
+  .clad li { padding-left: 14px; }
+  .clad ul > li::before { width: 11px; }
+  .clad-node { padding: 6px 9px; }
+}

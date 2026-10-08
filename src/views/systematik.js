@@ -1,18 +1,20 @@
 import { h, shuffle, norm, levenshtein, weightedSample } from '../lib/util.js';
 import { load, save, recordResult, stats, weight } from '../lib/store.js';
 import { getSpeciesList } from '../data/species.js';
-import { buildTree } from '../data/taxonomy.js';
+import { buildTree, buildCladogram } from '../data/taxonomy.js';
 import { getBirdMedia, getCuratedPhoto } from '../lib/media.js';
 
 /* Systematik lernen: Ordnung → Familie → Art.
- *  Stammbaum  – alles zum Aufklappen, mit Fotos und Merkmalen
+ *  Baum       – Verwandtschaftsbaum mit Ästen: Großgruppen → Ordnung → Familie → Art
+ *  Liste      – alles zum Aufklappen, mit Fotos und Merkmalen
  *  Abdecken   – Arten oder Familien verdeckt, antippen deckt auf
  *  Einordnen  – Art gezeigt, erst Ordnung, dann Familie wählen
  *  Art nennen – Familie gezeigt, eine passende Art eintippen (wie in der Prüfung)
  */
 
 const MODES = [
-  ['baum', 'Stammbaum'],
+  ['baum', 'Baum'],
+  ['liste', 'Liste'],
   ['abdecken', 'Abdecken'],
   ['einordnen', 'Einordnen'],
   ['nennen', 'Art nennen'],
@@ -23,6 +25,7 @@ export function mount(root) {
   const tree = buildTree(list.species);
   const allFamilies = tree.flatMap(o => o.families.map(f => ({ ...f, order: o.name })));
   const st = { mode: load('sysMode', 'baum'), hide: load('sysHide', 'arten') };
+  if (!MODES.some(([v]) => v === st.mode)) st.mode = 'baum';
 
   const modes = h('div', { class: 'seg', role: 'radiogroup' });
   MODES.forEach(([v, label]) => modes.append(h('button', {
@@ -57,15 +60,98 @@ export function mount(root) {
         if (m.thumb) { img.src = m.thumb; img.classList.add('loaded'); }
       });
     }), { rootMargin: '150px' });
-    body.querySelectorAll('img[data-sci]').forEach(im => io.observe(im));
+    body.querySelectorAll('img[data-sci]:not(.loaded)').forEach(im => io.observe(im));
   };
 
   function draw() {
     body.innerHTML = '';
-    if (st.mode === 'baum') drawTree(false);
+    if (st.mode === 'baum') drawCladogram();
+    else if (st.mode === 'liste') drawTree(false);
     else if (st.mode === 'abdecken') drawTree(true);
     else if (st.mode === 'einordnen') quizPlace();
     else quizName();
+  }
+
+  /* ---------------- Baum (Kladogramm mit Ästen) ---------------- */
+  function drawCladogram() {
+    const root = buildCladogram(tree);
+    const tools = h('div', { class: 'sys-tools' },
+      h('button', { class: 'btn ghost small', type: 'button', onclick: () => setAll(true) }, 'Alles aufklappen'),
+      h('button', { class: 'btn ghost small', type: 'button', onclick: () => setAll(false) }, 'Zuklappen'));
+    const legend = h('p', { class: 'muted small clad-legend' },
+      h('span', { class: 'clad-key clad-key-grp' }), 'Verwandtschaftsgruppe ',
+      h('span', { class: 'clad-key clad-key-ord' }), 'Ordnung ',
+      h('span', { class: 'clad-key clad-key-fam' }), 'Familie');
+    const ul = h('ul', { class: 'clad' });
+    ul.append(nodeLi(root, 0));
+    const info = h('div', { class: 'clad-info', 'aria-live': 'polite', hidden: true });
+    const hint = h('p', { class: 'muted small' }, 'Tippe auf einen Knoten: Er klappt auf oder zu, und unten erscheint eine kurze Erklärung.');
+    body.append(tools, legend, hint, h('div', { class: 'clad-wrap' }, ul), info);
+    lazyPhotos();
+
+    function setAll(open) {
+      body.querySelectorAll('.clad li[data-kind]').forEach(li => {
+        const k = li.dataset.kind;
+        const want = open ? true : k === 'grp';
+        li.classList.toggle('collapsed', !want);
+        li.querySelector(':scope > .clad-node')?.setAttribute('aria-expanded', String(want));
+      });
+      lazyPhotos();
+    }
+    function explain(title, sci, note, extra) {
+      info.innerHTML = '';
+      info.hidden = false;
+      info.append(
+        h('button', { class: 'clad-close', type: 'button', 'aria-label': 'Erklärung schließen', onclick: () => { info.hidden = true; } }, '×'),
+        h('p', { class: 'def' }, h('b', {}, title), sci ? h('i', {}, ` ${sci}`) : '', note ? `: ${note}` : ''));
+      if (extra) info.append(h('p', { class: 'muted small' }, extra));
+    }
+    function toggle(li, btn) {
+      const now = li.classList.toggle('collapsed');
+      btn.setAttribute('aria-expanded', String(!now));
+      if (!now) lazyPhotos();
+    }
+
+    function nodeLi(n, depth) {
+      // Verwandtschaftsgruppe
+      if (!n.ord) {
+        const li = h('li', { 'data-kind': 'grp' });
+        const nOrd = countOrders(n);
+        const btn = h('button', { type: 'button', class: 'clad-node clad-grp' + (n.rest ? ' is-rest' : ''), 'aria-expanded': 'true',
+          onclick: () => { toggle(li, btn); explain(n.name, n.sci, n.note, `${nOrd} ${nOrd === 1 ? 'Ordnung' : 'Ordnungen'} aus deiner Liste.`); } },
+          h('span', { class: 'clad-t' }, n.name), n.sci ? h('span', { class: 'clad-s' }, n.sci) : '');
+        const kids = h('ul', {});
+        n.children.forEach(c => kids.append(nodeLi(c, depth + 1)));
+        li.append(btn, kids);
+        return li;
+      }
+      // Ordnung
+      const o = n.ord;
+      const nSp = o.families.reduce((a, f) => a + f.species.length, 0);
+      const li = h('li', { 'data-kind': 'ord', class: 'collapsed' });
+      const btn = h('button', { type: 'button', class: 'clad-node clad-ord', 'aria-expanded': 'false',
+        onclick: () => { toggle(li, btn); explain(o.name, o.info?.sci, o.info?.note, `${o.families.length} ${o.families.length === 1 ? 'Familie' : 'Familien'}, ${nSp} ${nSp === 1 ? 'Art' : 'Arten'}.`); } },
+        h('span', { class: 'clad-t' }, o.name), o.info ? h('span', { class: 'clad-s' }, o.info.sci) : '',
+        h('span', { class: 'clad-n' }, `${nSp} ${nSp === 1 ? 'Art' : 'Arten'}`));
+      const fams = h('ul', {});
+      o.families.forEach(f => {
+        const fli = h('li', { 'data-kind': 'fam', class: 'collapsed' });
+        const fbtn = h('button', { type: 'button', class: 'clad-node clad-fam', 'aria-expanded': 'false',
+          onclick: () => { toggle(fli, fbtn); explain(f.name, f.info?.sci, f.info?.note, `Arten: ${f.species.map(x => x.de).join(', ')}.`); } },
+          h('span', { class: 'clad-t' }, f.name), f.info ? h('span', { class: 'clad-s' }, f.info.sci) : '',
+          h('span', { class: 'clad-n' }, `${f.species.length} ${f.species.length === 1 ? 'Art' : 'Arten'}`));
+        const sp = h('ul', {});
+        f.species.forEach(x => sp.append(h('li', { class: 'clad-leaf' },
+          h('span', { class: 'clad-node clad-sp' },
+            h('img', { alt: '', 'data-sci': x.sci, class: 'sys-thumb' }),
+            h('span', { class: 'sys-name' }, h('b', {}, x.de), h('i', {}, x.sci))))));
+        fli.append(fbtn, sp);
+        fams.append(fli);
+      });
+      li.append(btn, fams);
+      return li;
+    }
+    function countOrders(n) { return n.ord ? 1 : n.children.reduce((a, c) => a + countOrders(c), 0); }
   }
 
   /* ---------------- Stammbaum / Abdecken ---------------- */

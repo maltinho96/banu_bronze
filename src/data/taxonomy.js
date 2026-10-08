@@ -122,3 +122,94 @@ export function buildTree(species) {
     })),
   }));
 }
+
+/* ------------------------------------------------------------------
+ * Verwandtschaftsbaum der Ordnungen (Kladogramm)
+ *
+ * Nur gut abgesicherte Großgruppen aus den genomischen Stammbäumen
+ * (Jarvis et al. 2014, Prum et al. 2015, Stiller et al. 2024).
+ * Ordnungen, deren genaue Stellung noch umstritten ist, stehen unter
+ * „Weitere Linien“. Unbekannte Ordnungen aus einer importierten Liste
+ * werden ebenfalls dort einsortiert.
+ * Blätter: { order: '<deutscher Ordnungsname>', alias: [weitere Namen] }
+ * ------------------------------------------------------------------ */
+export const CLADOGRAM = {
+  name: 'Vögel', sci: 'Aves',
+  note: 'Alle heutigen Vögel. Die Laufvögel (Strauß, Emu, Kiwi) bilden einen eigenen, sehr alten Zweig – in Deutschland kommen sie nicht wild vor.',
+  children: [
+    {
+      name: 'Hühner- und Gänsevögel', sci: 'Galloanserae',
+      note: 'Haben sich als erste von allen übrigen Vögeln abgespalten. Hühner und Enten sind also enger verwandt, als sie aussehen.',
+      children: [{ order: 'Hühnervögel' }, { order: 'Gänsevögel' }],
+    },
+    {
+      name: 'Alle übrigen Vögel', sci: 'Neoaves',
+      note: 'Über 90 % aller Vogelarten.',
+      children: [
+        {
+          name: 'Landvögel', sci: 'Telluraves',
+          note: 'Greifvögel, Eulen, Spechte, Falken und Singvögel gehen auf einen gemeinsamen Vorfahren zurück – vermutlich einen Beutegreifer.',
+          children: [
+            {
+              name: 'Greifvogel-Linie', sci: 'Afroaves',
+              note: 'Habichtartige, Eulen, Racken- und Spechtvögel.',
+              children: [{ order: 'Greifvögel', alias: ['Habichtartige'] }, { order: 'Eulen' }, { order: 'Rackenvögel' }, { order: 'Spechtvögel' }],
+            },
+            {
+              name: 'Falken-Singvogel-Linie', sci: 'Australaves',
+              note: 'Falken sind die nächsten Verwandten von Papageien und Sperlingsvögeln – nicht von Bussard und Habicht. Die Ähnlichkeit zu den Greifvögeln ist eine Anpassung an die Jagd.',
+              children: [{ order: 'Falkenartige' }, { order: 'Sperlingsvögel' }],
+            },
+          ],
+        },
+        {
+          name: 'Wasservogel-Kern', sci: 'Aequornithes',
+          note: 'Störche, Reiher, Kormorane – dazu Seetaucher und Sturmvögel.',
+          children: [{ order: 'Storchenvögel' }, { order: 'Ruderfüßer' }, { order: 'Pelikanvögel' }],
+        },
+        {
+          name: 'Weitere Linien', sci: null, rest: true,
+          note: 'Wie diese Ordnungen untereinander verzweigen, ist noch nicht sicher geklärt.',
+          children: [
+            { order: 'Seglervögel' }, { order: 'Taubenvögel' }, { order: 'Kuckucksvögel' },
+            { order: 'Kranichvögel' }, { order: 'Lappentaucher' },
+            { order: 'Regenpfeiferartige', alias: ['Regenpfeifervögel'] },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+/** Hängt die Ordnungen aus der Artenliste in das Kladogramm ein.
+ *  Gibt eine Kopie zurück, in der jedes Blatt `ord` (Knoten aus buildTree) trägt;
+ *  Zweige ohne vorhandene Ordnung werden entfernt. */
+export function buildCladogram(tree) {
+  const byName = new Map(tree.map(o => [o.name, o]));
+  const used = new Set();
+  const walk = n => {
+    if (n.order) {
+      const names = [n.order, ...(n.alias || [])];
+      const hits = names.map(x => byName.get(x)).filter(Boolean);
+      hits.forEach(o => used.add(o.name));
+      return hits.map(o => ({ ord: o }));
+    }
+    let kids = n.children.flatMap(walk);
+    return [{ ...n, children: kids }];
+  };
+  const root = walk(CLADOGRAM)[0];
+  // Ordnungen, die im Kladogramm fehlen → „Weitere Linien“
+  const missing = tree.filter(o => !used.has(o.name)).map(o => ({ ord: o }));
+  const addMissing = n => {
+    if (n.rest) n.children.push(...missing);
+    (n.children || []).forEach(c => c.children && addMissing(c));
+  };
+  addMissing(root);
+  // leere Zweige entfernen, Zweige mit nur einem Kind zusammenziehen ist nicht nötig
+  const prune = n => {
+    if (!n.children) return n;
+    n.children = n.children.map(prune).filter(c => c.ord || c.children.length);
+    return n;
+  };
+  return prune(root);
+}
