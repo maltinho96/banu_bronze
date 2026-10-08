@@ -213,3 +213,61 @@ export function buildCladogram(tree) {
   };
   return prune(root);
 }
+
+/* ------------------------------------------------------------------
+ * Morphologisch definierte Artengruppen
+ *
+ * Prüfungsfrage Bronze 1.1: „Zu welcher Familie/Ordnung/morphologisch
+ * definierten Artengruppe gehört dieser Vogel?“
+ * Artengruppen fassen Vögel nach Bau und Lebensweise zusammen. Sie decken
+ * sich oft NICHT mit der Verwandtschaft – genau das ist der Lerneffekt
+ * (z. B. Greifvögel = Habichtartige + Falken).
+ * Zuordnung über Ordnung (ords), Familie (fams) oder Gattung (gen).
+ * Eine Art kann in mehreren Gruppen stehen (Stockente: Gründelente und Wasservogel).
+ * Gruppen, die exakt einer Ordnung oder Familie entsprechen (Eulen, Spechte,
+ * Tauben, Hühnervögel), stehen bewusst nicht hier – die zeigt der Baum.
+ * ------------------------------------------------------------------ */
+export const GROUPS = [
+  { name: 'Singvögel', sci: 'Passeri (Oscines)', ords: ['Sperlingsvögel'],
+    note: 'Unterordnung der Sperlingsvögel mit besonders fein gesteuertem Stimmorgan (Syrinx). In Mitteleuropa sind alle Sperlingsvögel Singvögel – auch Krähen.' },
+  { name: 'Greifvögel', sci: null, ords: ['Greifvögel', 'Habichtartige', 'Falkenartige'], fams: ['Habichtartige', 'Falken', 'Fischadler'],
+    note: 'Tagaktive Jäger mit Hakenschnabel und Greiffüßen. Umfasst Habichtartige UND Falken, obwohl beide nicht näher miteinander verwandt sind.' },
+  { name: 'Limikolen (Watvögel)', sci: 'Charadrii', fams: ['Regenpfeifer', 'Schnepfenvögel', 'Austernfischer', 'Säbelschnäbler', 'Stelzenläufer', 'Triele'],
+    note: 'Meist langbeinig, mit Stocher- oder Pickschnabel; an Ufern, im Watt und auf Feuchtwiesen. Teil der Regenpfeiferartigen, aber ohne Möwen.' },
+  { name: 'Möwen und Seeschwalben', sci: 'Lari', fams: ['Möwen', 'Seeschwalben', 'Raubmöwen'],
+    note: 'Schwimmhäute, lange spitze Flügel, meist grau-weiß. Ebenfalls Regenpfeiferartige.' },
+  { name: 'Stelzvögel', sci: null, fams: ['Reiher', 'Störche', 'Kraniche', 'Ibisse und Löffler'],
+    note: 'Große Vögel mit langen Beinen, langem Hals und langem Schnabel; schreiten bei der Nahrungssuche. Reiher, Störche und Kraniche gehören zu drei verschiedenen Ordnungen.' },
+  { name: 'Wasservögel', sci: null, fams: ['Entenvögel', 'Lappentaucher', 'Rallen', 'Kormorane', 'Seetaucher'],
+    excl: ['Wasserralle', 'Wachtelkönig', 'Tüpfelsumpfhuhn'],
+    note: 'Schwimmend lebende Vögel – im Sinne der Wasservogelzählung: Entenvögel, Lappentaucher, Kormorane, Seetaucher und schwimmende Rallen wie Blässhuhn.' },
+  { name: 'Gründelenten', sci: 'Anatini', gen: ['Anas', 'Mareca', 'Spatula', 'Sibirionetta'],
+    note: 'Gründeln mit dem Kopf unter Wasser, Schwanz nach oben. Liegen hoch im Wasser und starten senkrecht aus dem Wasser. Farbiger Flügelspiegel.' },
+  { name: 'Tauchenten', sci: 'Aythyini', gen: ['Aythya', 'Netta', 'Bucephala', 'Clangula', 'Melanitta', 'Somateria'],
+    note: 'Tauchen ganz ab. Liegen tief im Wasser, Beine weit hinten, laufen zum Start über die Wasseroberfläche an.' },
+  { name: 'Säger', sci: 'Mergini', gen: ['Mergus', 'Mergellus'],
+    note: 'Tauchende Fischjäger unter den Entenvögeln mit schmalem, gezähntem Schnabel.' },
+  { name: 'Gänse', sci: 'Anserini', gen: ['Anser', 'Branta'], note: 'Große, langhalsige Entenvögel, grasen viel an Land.' },
+  { name: 'Schwäne', sci: 'Cygnini', gen: ['Cygnus'], note: 'Größte Entenvögel, sehr langer Hals, weiß.' },
+  { name: 'Halbgänse', sci: 'Tadornini', gen: ['Tadorna', 'Alopochen'], note: 'Zwischen Gänsen und Enten; Brandgans und Nilgans.' },
+];
+
+const genus = sp => (sp.sci || '').split(' ')[0];
+
+/** Alle Artengruppen, zu denen eine Art gehört. */
+export function groupsOf(sp) {
+  return GROUPS.filter(g =>
+    !(g.excl || []).includes(sp.de) && (
+      (g.ords || []).includes(sp.ord) ||
+      (g.fams || []).includes(sp.fam) ||
+      (g.gen || []).includes(genus(sp))));
+}
+
+/** Gruppen mit ihren Arten aus der Liste (leere Gruppen fallen weg). */
+export function buildGroups(species) {
+  return GROUPS.map(g => {
+    const members = species.filter(sp => groupsOf(sp).includes(g)).sort((a, b) => a.de.localeCompare(b.de, 'de'));
+    return { ...g, species: members,
+      orders: [...new Set(members.map(m => m.ord))], families: [...new Set(members.map(m => m.fam))] };
+  }).filter(g => g.species.length);
+}

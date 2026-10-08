@@ -1,20 +1,22 @@
 import { h, shuffle, norm, levenshtein, weightedSample } from '../lib/util.js';
 import { load, save, recordResult, stats, weight } from '../lib/store.js';
 import { getSpeciesList } from '../data/species.js';
-import { buildTree, buildCladogram } from '../data/taxonomy.js';
+import { buildTree, buildCladogram, buildGroups, groupsOf } from '../data/taxonomy.js';
 import { getBirdMedia, getCuratedPhoto } from '../lib/media.js';
 
 /* Systematik lernen: Ordnung → Familie → Art.
  *  Baum       – Verwandtschaftsbaum mit Ästen: Großgruppen → Ordnung → Familie → Art
  *  Liste      – alles zum Aufklappen, mit Fotos und Merkmalen
+ *  Gruppen    – morphologisch definierte Artengruppen (Greifvögel, Limikolen …)
  *  Abdecken   – Arten oder Familien verdeckt, antippen deckt auf
- *  Einordnen  – Art gezeigt, erst Ordnung, dann Familie wählen
- *  Art nennen – Familie gezeigt, eine passende Art eintippen (wie in der Prüfung)
+ *  Einordnen  – Vogel gezeigt: Ordnung → Familie → Artengruppe wählen (Prüfungsfrage 1.1)
+ *  Art nennen – Ordnung, Familie oder Artengruppe gezeigt, eine Art eintippen (Prüfungsfrage 1.12)
  */
 
 const MODES = [
   ['baum', 'Baum'],
   ['liste', 'Liste'],
+  ['gruppen', 'Gruppen'],
   ['abdecken', 'Abdecken'],
   ['einordnen', 'Einordnen'],
   ['nennen', 'Art nennen'],
@@ -24,7 +26,8 @@ export function mount(root) {
   const list = getSpeciesList();
   const tree = buildTree(list.species);
   const allFamilies = tree.flatMap(o => o.families.map(f => ({ ...f, order: o.name })));
-  const st = { mode: load('sysMode', 'baum'), hide: load('sysHide', 'arten') };
+  const groups = buildGroups(list.species);
+  const st = { mode: load('sysMode', 'baum'), hide: load('sysHide', 'arten'), showName: load('sysShowName', true) };
   if (!MODES.some(([v]) => v === st.mode)) st.mode = 'baum';
 
   const modes = h('div', { class: 'seg', role: 'radiogroup' });
@@ -67,6 +70,7 @@ export function mount(root) {
     body.innerHTML = '';
     if (st.mode === 'baum') drawCladogram();
     else if (st.mode === 'liste') drawTree(false);
+    else if (st.mode === 'gruppen') drawGroups();
     else if (st.mode === 'abdecken') drawTree(true);
     else if (st.mode === 'einordnen') quizPlace();
     else quizName();
@@ -152,6 +156,36 @@ export function mount(root) {
       return li;
     }
     function countOrders(n) { return n.ord ? 1 : n.children.reduce((a, c) => a + countOrders(c), 0); }
+  }
+
+  /* ---------------- Morphologische Artengruppen ---------------- */
+  function drawGroups() {
+    body.append(h('p', { class: 'muted small' },
+      'Artengruppen fassen Vögel nach Bau und Lebensweise zusammen – nicht nach Verwandtschaft. ',
+      'Deshalb können sie mehrere Ordnungen umfassen (Greifvögel, Stelzvögel) oder nur einen Teil einer Familie (Gründel- und Tauchenten). ',
+      'Namen wie Eulen, Spechte oder Tauben sind zugleich Ordnung bzw. Familie – die findest du im Baum.'));
+    const tools = h('div', { class: 'sys-tools' },
+      h('button', { class: 'btn ghost small', type: 'button', onclick: () => body.querySelectorAll('details').forEach(d => { d.open = true; }) }, 'Alles aufklappen'),
+      h('button', { class: 'btn ghost small', type: 'button', onclick: () => body.querySelectorAll('details').forEach(d => { d.open = false; }) }, 'Alles zuklappen'));
+    body.append(tools);
+    groups.forEach(g => {
+      const det = h('details', { class: 'sys-ord' },
+        h('summary', {},
+          h('span', { class: 'sys-name' }, h('b', {}, g.name), g.sci ? h('i', {}, g.sci) : ''),
+          h('span', { class: 'sys-count' }, `${g.species.length} ${g.species.length === 1 ? 'Art' : 'Arten'}`)));
+      det.append(h('p', { class: 'sys-note' }, g.note));
+      const span = g.orders.length > 1
+        ? `Umfasst ${g.orders.length} Ordnungen: ${g.orders.join(', ')}.`
+        : `Ordnung ${g.orders[0]}${g.families.length > 1 ? `, Familien: ${g.families.join(', ')}` : `, Familie ${g.families[0]}`}.`;
+      det.append(h('p', { class: 'sys-note sys-span' }, span));
+      const ul = h('ul', { class: 'sys-sp sys-sp-grp' });
+      g.species.forEach(sp => ul.append(h('li', {},
+        h('img', { alt: '', 'data-sci': sp.sci, class: 'sys-thumb' }),
+        h('span', { class: 'sys-name' }, h('b', {}, sp.de), h('i', {}, `${sp.sci} · ${sp.fam}`)))));
+      det.append(ul);
+      det.addEventListener('toggle', () => { if (det.open) lazyPhotos(); });
+      body.append(det);
+    });
   }
 
   /* ---------------- Stammbaum / Abdecken ---------------- */
@@ -249,72 +283,123 @@ export function mount(root) {
     const ordNode = r.ord;
     const famNode = weightedSample(ordNode.families, 1, f => weight(s[`fam|${f.name}`]))[0];
     const sp = weightedSample(famNode.species, 1, x => weight(s[`ord|${x.sci}`]))[0];
+    // Artengruppe: die spezifischste (kleinste) Gruppe der Art abfragen
+    const myGroups = groupsOf(sp);
+    const grp = myGroups.length
+      ? groups.filter(g => myGroups.some(m => m.name === g.name)).sort((a, b) => a.species.length - b.species.length)[0]
+      : null;
+
     const card = h('section', { class: 'card qcard' });
     const img = h('img', { alt: '', class: 'sys-quiz-img' });
     const cur = getCuratedPhoto(`art:${sp.sci}`);
     (cur ? Promise.resolve({ thumb: cur.thumb }) : getBirdMedia(sp)).then(m => { if (m.thumb) img.src = m.thumb; });
     const step = h('div', {});
     const score = h('p', { class: 'score' }, total ? `${right} von ${total} richtig` : '');
-    card.append(h('p', { class: 'qmeta' }, roundNote(r)), img, h('h2', { class: 'rname' }, sp.de), h('p', { class: 'rsci' }, sp.sci), step);
-    body.append(card, score);
+    const nameBox = h('div', {});
+    const showName = () => { nameBox.innerHTML = ''; nameBox.append(h('h2', { class: 'rname' }, sp.de), h('p', { class: 'rsci' }, sp.sci)); };
+    if (st.showName) showName();
+    else nameBox.append(h('button', { class: 'linkbtn', type: 'button', onclick: showName }, 'Artnamen anzeigen'));
+    const nameToggle = h('label', { class: 'check small sys-nametoggle' },
+      h('input', { type: 'checkbox', checked: st.showName, onchange: e => { st.showName = e.target.checked; save('sysShowName', st.showName); } }),
+      'Artnamen gleich zeigen (aus: nur Foto, wie in der Prüfung)');
+    card.append(h('p', { class: 'qmeta' }, roundNote(r)), img, nameBox, step);
+    body.append(card, score, nameToggle);
 
-    let okOrd = false;
+    const steps = grp ? 3 : 2;
+    const res = {};
     askOrder();
 
     function choices(opts, correct, onPick) {
       const box = h('div', { class: 'choices stack' });
       opts.forEach(o => box.append(h('button', {
-        type: 'button', class: 'choice', onclick: e => {
+        type: 'button', class: 'choice', 'data-v': o, onclick: e => {
           box.querySelectorAll('button').forEach(b => {
             b.disabled = true;
-            if (b.textContent.startsWith(correct)) b.classList.add('is-right');
+            if (b.dataset.v === correct) b.classList.add('is-right');
           });
-          if (!e.currentTarget.textContent.startsWith(correct)) e.currentTarget.classList.add('is-wrong');
+          if (o !== correct) e.currentTarget.classList.add('is-wrong');
           onPick(o === correct);
         },
       }, o)));
       return box;
     }
-
     function askOrder() {
       const others = shuffle(tree.map(o => o.name).filter(n => n !== sp.ord)).slice(0, 3);
-      step.append(h('p', { class: 'task' }, '1. Zu welcher Ordnung gehört die Art?'),
-        choices(shuffle([sp.ord, ...others]), sp.ord, ok => { okOrd = ok; askFamily(); }));
+      step.append(h('p', { class: 'task' }, `1/${steps} · Zu welcher Ordnung gehört der Vogel?`),
+        choices(shuffle([sp.ord, ...others]), sp.ord, ok => { res.ord = ok; askFamily(); }));
     }
     function askFamily() {
       // Ablenker bevorzugt aus derselben Ordnung – das ist die eigentliche Lernaufgabe
-      const same = (ordNode?.families || []).map(f => f.name).filter(n => n !== sp.fam);
+      const same = ordNode.families.map(f => f.name).filter(n => n !== sp.fam);
       const rest = allFamilies.map(f => f.name).filter(n => n !== sp.fam && !same.includes(n));
       const others = [...shuffle(same), ...shuffle(rest)].slice(0, 3);
-      step.append(h('p', { class: 'task' }, '2. Und zu welcher Familie?'),
-        choices(shuffle([sp.fam, ...others]), sp.fam, okFam => finish(okFam)));
+      step.append(h('p', { class: 'task' }, `2/${steps} · Zu welcher Familie?`),
+        choices(shuffle([sp.fam, ...others]), sp.fam, ok => { res.fam = ok; grp ? askGroup() : finish(); }));
     }
-    function finish(okFam) {
-      const ok = okOrd && okFam;
+    function askGroup() {
+      // Ablenker: nur Gruppen, zu denen die Art NICHT gehört
+      const others = shuffle(groups.filter(g => !myGroups.some(m => m.name === g.name)).map(g => g.name)).slice(0, 3);
+      step.append(h('p', { class: 'task' }, `3/${steps} · Zu welcher morphologischen Artengruppe?`),
+        choices(shuffle([grp.name, ...others]), grp.name, ok => { res.grp = ok; finish(); }));
+    }
+    function finish() {
+      const parts = [['Ordnung', res.ord], ['Familie', res.fam], ...(grp ? [['Artengruppe', res.grp]] : [])];
+      const wrong = parts.filter(([, v]) => !v).map(([k]) => k);
+      const ok = !wrong.length;
       total++; if (ok) right++;
       recordResult('sysStats', `ord|${sp.sci}`, ok);
       recordResult('sysStats', `o|${sp.ord}`, ok);
       score.textContent = `${right} von ${total} richtig`;
-      const fam = ordNode?.families.find(f => f.name === sp.fam);
-      const siblings = (fam?.species || []).filter(x => x.sci !== sp.sci).map(x => x.de);
+      if (!st.showName) showName();
+      const siblings = famNode.species.filter(x => x.sci !== sp.sci).map(x => x.de);
       step.append(
-        h('p', { class: `verdict ${ok ? 'ok' : 'no'}` }, ok ? 'Richtig' : okOrd ? 'Ordnung richtig, Familie falsch' : okFam ? 'Familie richtig, Ordnung falsch' : 'Falsch'),
+        h('p', { class: `verdict ${ok ? 'ok' : 'no'}` }, ok ? 'Alles richtig' : `Falsch: ${wrong.join(', ')}`),
         h('p', { class: 'sys-path' },
-          h('span', {}, sp.ord, ordNode?.info ? h('i', {}, ` ${ordNode.info.sci}`) : ''), ' › ',
-          h('span', {}, sp.fam, fam?.info ? h('i', {}, ` ${fam.info.sci}`) : ''), ' › ',
+          h('span', {}, sp.ord, ordNode.info ? h('i', {}, ` ${ordNode.info.sci}`) : ''), ' › ',
+          h('span', {}, sp.fam, famNode.info ? h('i', {}, ` ${famNode.info.sci}`) : ''), ' › ',
           h('b', {}, sp.de)),
-        fam?.info?.note ? h('p', { class: 'def muted' }, fam.info.note) : '',
+        myGroups.length ? h('p', { class: 'def' }, h('b', {}, 'Artengruppe: '), myGroups.map(g => g.name).join(', ')) : h('p', { class: 'def muted' }, 'Keine der üblichen Artengruppen.'),
+        grp ? h('p', { class: 'def muted' }, grp.note) : (famNode.info?.note ? h('p', { class: 'def muted' }, famNode.info.note) : ''),
         siblings.length ? h('p', { class: 'def' }, h('b', {}, 'Ebenfalls in dieser Familie: '), siblings.join(', ')) : h('p', { class: 'def muted' }, 'Einzige Art dieser Familie in der Liste.'),
         h('button', { class: 'btn primary', type: 'button', onclick: () => { body.innerHTML = ''; quizPlace(); } }, 'Weiter'));
       step.querySelector('.btn.primary').focus({ preventScroll: true });
     }
   }
 
-  /* ---------------- Nenne eine Art (wie in der Prüfung) ---------------- */
-  function quizName() {
+  /* ---------------- Art nennen (Prüfungsfrage 1.12) ----------------
+   * Reihum aus Ordnung, Familie und Artengruppe. Ordnungen und Familien kommen
+   * über den Ordnungs-Beutel, Artengruppen über einen eigenen Beutel. */
+  let nameTurn = 0;
+  function nameTarget() {
     const s = stats('sysStats');
+    const kinds = groups.length ? ['fam', 'grp', 'ord'] : ['fam', 'ord'];
+    let kind = kinds[nameTurn++ % kinds.length];
     const r = drawOrder('nennen');
-    const fam = { ...weightedSample(r.ord.families, 1, f => weight(s[`fam|${f.name}`]))[0], order: r.ord.name };
+    if (kind === 'grp') {
+      // Artengruppe passend zur gezogenen Ordnung – so bleiben auch die
+      // Gruppenfragen ausgeglichen (5 der Gruppen sind Entenvögel-Untergruppen)
+      const cand = groups.filter(g => g.orders.includes(r.ord.name));
+      if (cand.length) {
+        const g = weightedSample(cand, 1, x => weight(s[`grp|${x.name}`]))[0];
+        return { key: `grp|${g.name}`, label: 'Artengruppe', name: g.name, sci: g.sci, note: g.note, members: g.species,
+          meta: `${roundNote(r)} · Morphologische Artengruppe`, order: r.ord.name };
+      }
+      kind = 'fam'; // Ordnung ohne Artengruppe (z. B. Tauben, Spechte) → Familienfrage
+    }
+    if (kind === 'ord') {
+      const o = r.ord;
+      return { key: `o|${o.name}`, label: 'Ordnung', name: o.name, sci: o.info?.sci, note: o.info?.note,
+        members: o.families.flatMap(f => f.species), meta: roundNote(r), order: o.name };
+    }
+    const f = weightedSample(r.ord.families, 1, x => weight(s[`fam|${x.name}`]))[0];
+    return { key: `fam|${f.name}`, label: 'Familie', name: f.name, sci: f.info?.sci, note: f.info?.note,
+      members: f.species, meta: `${roundNote(r)} · Ordnung: ${r.ord.name}`, order: r.ord.name };
+  }
+  const fmtList = arr => arr.length > 14 ? `${arr.slice(0, 14).join(', ')} und ${arr.length - 14} weitere` : arr.join(', ');
+
+  function quizName() {
+    const t = nameTarget();
+    const memberSet = new Set(t.members.map(m => m.sci));
     const card = h('section', { class: 'card qcard' });
     const input = h('input', { type: 'text', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', enterkeyhint: 'done', placeholder: 'Deutscher oder wissenschaftlicher Name' });
     const result = h('div', {});
@@ -324,30 +409,35 @@ export function mount(root) {
       input.disabled = true;
       const g = norm(input.value);
       const names = sp => [sp.de, sp.sci, ...(sp.syn || [])].map(norm).filter(Boolean);
-      // Exakter Name einer Art aus einer anderen Familie ist immer falsch …
-      const exactOther = g && list.species.find(sp => sp.fam !== fam.name && names(sp).includes(g));
+      // Exakter Name einer Art außerhalb der Gruppe ist immer falsch …
+      const exactOther = g && list.species.find(sp => !memberSet.has(sp.sci) && names(sp).includes(g));
       // … sonst sind kleine Tippfehler und Buchstabendreher erlaubt
       const tol = g.length >= 7 ? 2 : g.length >= 5 ? 1 : 0;
-      const hit = !exactOther && g && fam.species.find(sp => names(sp).some(n => n === g || levenshtein(g, n) <= tol));
+      const hit = !exactOther && g && t.members.find(sp => names(sp).some(n => n === g || levenshtein(g, n) <= tol));
       const other = !hit && (exactOther || (g && list.species.find(sp => names(sp).includes(g))));
       const ok = !!hit;
       total++; if (ok) right++;
-      recordResult('sysStats', `fam|${fam.name}`, ok);
-      recordResult('sysStats', `o|${fam.order}`, ok);
+      recordResult('sysStats', t.key, ok);
+      if (t.order) recordResult('sysStats', `o|${t.order}`, ok);
       score.textContent = `${right} von ${total} richtig`;
+      const whereOther = sp => {
+        const gs = groupsOf(sp).map(x => x.name);
+        return `${sp.fam}, ${sp.ord}${gs.length ? `; Gruppe: ${gs.join(', ')}` : ''}`;
+      };
       result.append(
         h('p', { class: `verdict ${ok ? 'ok' : 'no'}` },
-          ok ? `Richtig – ${hit.de}` : other ? `Falsch – ${other.de} gehört zu ${other.fam} (${other.ord})` : g ? 'Falsch – nicht in dieser Familie gefunden' : 'Nicht beantwortet'),
-        h('p', { class: 'def' }, h('b', {}, `Alle ${fam.name} in der Liste: `), fam.species.map(x => x.de).join(', ')),
-        fam.info?.note ? h('p', { class: 'def muted' }, fam.info.note) : '',
+          ok ? `Richtig – ${hit.de}` : other ? `Falsch – ${other.de} gehört zu: ${whereOther(other)}` : g ? 'Falsch – nicht gefunden' : 'Nicht beantwortet'),
+        h('p', { class: 'def' }, h('b', {}, `${t.label} ${t.name} in der Liste: `), fmtList(t.members.map(x => x.de))),
+        t.note ? h('p', { class: 'def muted' }, t.note) : '',
         h('button', { class: 'btn primary', type: 'button', onclick: () => { body.innerHTML = ''; quizName(); } }, 'Weiter'));
       result.querySelector('.btn.primary').focus({ preventScroll: true });
     };
     input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); check(); } });
+    const art = t.label === 'Artengruppe' ? 'der Artengruppe' : t.label === 'Ordnung' ? 'der Ordnung' : 'der Familie';
     card.append(
-      h('p', { class: 'qmeta' }, `${roundNote(r)} · Ordnung: ${fam.order}`),
-      h('h2', { class: 'qtext' }, `Nennen Sie eine Art aus der Familie ${fam.name}.`),
-      fam.info ? h('p', { class: 'rsci' }, fam.info.sci) : '',
+      h('p', { class: 'qmeta' }, t.meta),
+      h('h2', { class: 'qtext' }, `Nennen Sie eine Art aus ${art} ${t.name}.`),
+      t.sci ? h('p', { class: 'rsci' }, t.sci) : '',
       h('div', { class: 'row sys-answer' }, input, h('button', { class: 'btn', type: 'button', onclick: check }, 'Prüfen')),
       result);
     body.append(card, score);

@@ -155,6 +155,9 @@ function mc(id, lv, cat, q, correct, distractors, a) {
   return { id, lv, cat, type: 'single', q, opts, ok: [opts.indexOf(correct)], a, generated: true };
 }
 const uniq = a => [...new Set(a.filter(Boolean))];
+/* Ordnung der betroffenen Art merken – damit die Fragen-Runde die Ordnungen
+ * ausgeglichen ziehen kann, statt zu zwei Dritteln Sperlingsvögel zu bringen. */
+const tag = (q, ord) => (ord ? { ...q, ord } : q);
 
 export function generateQuestions(species) {
   const out = [];
@@ -181,20 +184,20 @@ export function generateQuestions(species) {
     // Familie
     if (sp.fam && fams.length >= 4) {
       const wrong = shuffle(fams.filter(f => f !== sp.fam)).slice(0, 3);
-      out.push(mc(`fam-${sp.sci}`, 'bsg', 'sys', `Zu welcher Familie gehört: ${sp.de}?`, sp.fam, wrong,
-        `${sp.de} (${sp.sci}) gehört zur Familie ${sp.fam}${sp.ord ? ', Ordnung ' + sp.ord : ''}.`));
+      out.push(tag(mc(`fam-${sp.sci}`, 'bsg', 'sys', `Zu welcher Familie gehört: ${sp.de}?`, sp.fam, wrong,
+        `${sp.de} (${sp.sci}) gehört zur Familie ${sp.fam}${sp.ord ? ', Ordnung ' + sp.ord : ''}.`), sp.ord));
     }
     // Ordnung (nur Nicht-Sperlingsvögel, sonst zu leicht)
     if (sp.ord && sp.ord !== 'Sperlingsvögel' && ords.length >= 4) {
       const wrong = shuffle(ords.filter(o => o !== sp.ord)).slice(0, 3);
-      out.push(mc(`ord-${sp.sci}`, 'bsg', 'sys', `Zu welcher Ordnung gehört: ${sp.de}?`, sp.ord, wrong,
-        `${sp.de}: Ordnung ${sp.ord}, Familie ${sp.fam}.`));
+      out.push(tag(mc(`ord-${sp.sci}`, 'bsg', 'sys', `Zu welcher Ordnung gehört: ${sp.de}?`, sp.ord, wrong,
+        `${sp.de}: Ordnung ${sp.ord}, Familie ${sp.fam}.`), sp.ord));
     }
     // Lebensraum der Art
     if (sp.hab?.length) {
       const wrong = shuffle(habs.filter(h => !sp.hab.includes(h))).slice(0, 3).map(h => HAB_LABEL[h]);
-      out.push(mc(`hab-${sp.sci}`, 'bsg', 'leb', `In welchem Lebensraum brütet ${sp.de} typischerweise?`, HAB_LABEL[sp.hab[0]], wrong,
-        `${sp.de}: ${sp.hab.map(h => HAB_LABEL[h]).join(', ')} (laut Artenliste).`));
+      out.push(tag(mc(`hab-${sp.sci}`, 'bsg', 'leb', `In welchem Lebensraum brütet ${sp.de} typischerweise?`, HAB_LABEL[sp.hab[0]], wrong,
+        `${sp.de}: ${sp.hab.map(h => HAB_LABEL[h]).join(', ')} (laut Artenliste).`), sp.ord));
     }
   });
 
@@ -204,9 +207,9 @@ export function generateQuestions(species) {
     const others = species.filter(s => s.fam !== fam);
     if (!members.length || others.length < 3) return;
     const c = pick(members);
-    out.push(mc(`fammem-${fam}`, 'bsg', 'sys', `Welche dieser Arten gehört zur Familie ${fam}?`, c.de,
+    out.push(tag(mc(`fammem-${fam}`, 'bsg', 'sys', `Welche dieser Arten gehört zur Familie ${fam}?`, c.de,
       shuffle(others).slice(0, 3).map(s => s.de),
-      `${fam}: ${members.map(m => m.de).join(', ')}.`));
+      `${fam}: ${members.map(m => m.de).join(', ')}.`), members[0].ord));
   });
 
   // Welche Art erwarten Sie im Lebensraum X?

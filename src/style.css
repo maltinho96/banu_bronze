@@ -414,3 +414,7 @@ details.sys-fam .sys-note { margin-left: 30px; }
   .clad ul > li::before { width: 11px; }
   .clad-node { padding: 6px 9px; }
 }
+
+.sys-span { font-weight: 700; color: var(--ink); }
+.sys-sp-grp { padding-left: 14px; }
+.sys-nametoggle { margin: 4px 2px 0; color: var(--ink-2); }

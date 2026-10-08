@@ -54,6 +54,28 @@ export function mount(root, ctx) {
 
   root.append(controls, card, ref);
 
+  /* Generierte Fragen ausgeglichen ziehen: Fächer je Ordnung (bzw. je
+   * Fragetyp bei Brutzeitcode/Rote Liste/Lebensraum), dann reihum aus den
+   * Fächern in zufälliger Reihenfolge – jede Ordnung kommt gleich oft dran. */
+  function balanced(arr, k) {
+    const st = stats('qStats');
+    const bins = new Map();
+    arr.forEach(q => {
+      const key = q.ord || q.id.split('-')[0];
+      if (!bins.has(key)) bins.set(key, []);
+      bins.get(key).push(q);
+    });
+    const pools = [...bins.values()].map(b => (cfg.weak ? weightedSample(b, b.length, q => weight(st[q.id])) : shuffle(b.slice())));
+    const out = [];
+    while (out.length < k && pools.some(b => b.length)) {
+      for (const b of shuffle(pools.slice())) {
+        if (out.length >= k) break;
+        if (b.length) out.push(b.shift());
+      }
+    }
+    return out;
+  }
+
   function start() {
     const p = pool();
     const st = stats('qStats');
@@ -63,7 +85,7 @@ export function mount(root, ctx) {
     const sample = (arr, k) => cfg.weak ? weightedSample(arr, k, q => weight(st[q.id])) : shuffle(arr.slice()).slice(0, k);
     const stat = p.filter(q => !q.generated), gen = p.filter(q => q.generated);
     const nStat = Math.min(stat.length, Math.max(Math.ceil(n / 2), n - gen.length));
-    session = shuffle([...sample(stat, nStat), ...sample(gen, n - nStat)]);
+    session = shuffle([...sample(stat, nStat), ...balanced(gen, n - nStat)]);
     i = 0; right = 0;
     card.hidden = false;
     show();
