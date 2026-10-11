@@ -1,7 +1,7 @@
 /* Systematik-Hilfsdaten: wissenschaftliche Namen, Reihenfolge, Merkmale.
  *
  * Die Zuordnung Art → Familie → Ordnung kommt aus der Artenliste
- * (species.json bzw. eingebaute BANU-Liste). Hier stehen nur Ergänzungen:
+ * (eingebaute BANU-Liste). Hier stehen nur Ergänzungen:
  *  - wissenschaftliche Namen der Ordnungen (-formes) und Familien (-idae)
  *  - eine systematische Reihenfolge, damit der Baum nicht alphabetisch ist
  *  - je Familie ein kurzes Merkmal, das beim Einordnen hilft

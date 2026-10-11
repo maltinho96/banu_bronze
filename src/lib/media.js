@@ -12,7 +12,7 @@
  */
 import { load, save } from './store.js';
 import { norm, shuffle } from './util.js';
-import { findSpeciesPhotos } from './photo-search.js';
+import { findSpeciesPhotos, withRetry } from './photo-search.js';
 
 const xcFiles = import.meta.glob('../data/audio.json', { eager: true, import: 'default' });
 const XC = Object.values(xcFiles)[0] || {};
@@ -231,8 +231,12 @@ export async function getSpeciesPhotos(sp) {
   if (autoInflight.has(sp.sci)) return autoInflight.get(sp.sci);
   const job = (async () => {
     let list = [];
-    try { list = await findSpeciesPhotos(sp, { fetch: (u) => fetch(u), n: 5 }); }
-    catch (e) { console.warn('Fotosuche:', sp.de, e.message); }
+    try {
+      list = await findSpeciesPhotos(sp, {
+        fetch: withRetry(u => fetch(u), { tries: 3, baseDelay: 1500 }), n: 5,
+        onError: m => console.warn('Fotosuche', sp.de, m),
+      });
+    } catch (e) { console.warn('Fotosuche:', sp.de, e.message); }
     let fallback = false;
     if (!list.length) {
       const m = await getBirdMedia(sp);
@@ -249,25 +253,31 @@ export async function getSpeciesPhotos(sp) {
   try { return await job; } finally { autoInflight.delete(sp.sci); }
 }
 
-/** Nächstes Foto einer Art – reihum, nie zweimal direkt hintereinander. */
-export async function nextSpeciesPhoto(sp) {
-  const list = await getSpeciesPhotos(sp);
-  if (!list.length) return null;
-  if (list.length === 1) return list[0];
-  const rot = load('photoRot', {});
-  const srcs = list.map(x => x.src);
-  let r = rot[sp.sci];
+/* Reihum-Auswahl, gespeichert pro Art: jedes Element einmal, dann neu gemischt,
+ * ohne das zuletzt gezeigte direkt zu wiederholen. Gilt für Fotos und Töne. */
+function rotate(store, sci, srcs) {
+  if (srcs.length <= 1) return srcs[0];
+  const rot = load(store, {});
+  let r = rot[sci];
   const valid = r && Array.isArray(r.order) && r.order.length === srcs.length && r.order.every(x => srcs.includes(x));
   if (!valid || r.i >= r.order.length) {
-    const last = valid ? r.order[r.order.length - 1] : r?.last;
+    const last = r?.last;
     let order = shuffle(srcs.slice()), tries = 0;
     while (order[0] === last && ++tries < 10) order = shuffle(srcs.slice());
     r = { order, i: 0 };
   }
   const src = r.order[r.i++];
   r.last = src;
-  rot[sp.sci] = r;
-  save('photoRot', rot);
+  rot[sci] = r;
+  save(store, rot);
+  return src;
+}
+
+/** Nächstes Foto einer Art – reihum, nie zweimal direkt hintereinander. */
+export async function nextSpeciesPhoto(sp) {
+  const list = await getSpeciesPhotos(sp);
+  if (!list.length) return null;
+  const src = rotate('photoRot', sp.sci, list.map(x => x.src));
   return list.find(x => x.src === src) || list[0];
 }
 
@@ -284,13 +294,39 @@ const HAB_ARTICLES = {
   siedlung: ['Kleingarten', 'Stadtpark', 'Dorf'],
   alpin: ['Almwiese', 'Alpine Höhenstufe', 'Latschenkiefer'],
 };
-export async function getHabitatImage(key) {
-  if (habCache.has(key)) return habCache.get(key);
-  for (const t of shuffle([...(HAB_ARTICLES[key] || [])])) {
-    try { const m = await wpPage(t); if (m?.thumb) { habCache.set(key, m.thumb); return m.thumb; } } catch { /* weiter */ }
+/* Genauer: Foto passend zum Hauptlebensraum-Text der BANU-Tabelle */
+const HAB_TEXT_ARTICLES = [
+  [/stillgew/i, ['Teich', 'Weiher', 'Stillgewässer']],
+  [/fließgew/i, ['Bach', 'Fließgewässer']],
+  [/röhricht|verlandung/i, ['Röhricht', 'Verlandung']],
+  [/feuchtgebiet/i, ['Feuchtgebiet', 'Verlandung', 'Salzwiese']],
+  [/binnengew/i, ['Teich', 'See', 'Weiher']],
+  [/laubwald/i, ['Buchenwald', 'Laubwald', 'Auwald']],
+  [/nadelwald/i, ['Fichtenwald', 'Nadelwald', 'Kiefernwald']],
+  [/waldähnlich/i, ['Mischwald', 'Landschaftspark', 'Stadtpark']],
+  [/^wald/i, ['Mischwald', 'Laubwald']],
+  [/halboffen/i, ['Streuobstwiese', 'Hecke', 'Feldgehölz']],
+  [/offene landschaft/i, ['Feuchtwiese', 'Grünland', 'Heide']],
+  [/acker/i, ['Acker', 'Feldflur']],
+  [/landwirtschaft/i, ['Feldflur', 'Agrarlandschaft', 'Grünland']],
+  [/sonderstandort/i, ['Kiesgrube', 'Sandgrube']],
+  [/dörflich/i, ['Dorf', 'Bauernhof']],
+  [/städtisch/i, ['Altstadt', 'Innenstadt']],
+  [/siedlung/i, ['Kleingarten', 'Stadtpark', 'Dorf']],
+];
+async function firstThumb(cacheKey, articles) {
+  if (habCache.has(cacheKey)) return habCache.get(cacheKey);
+  for (const t of shuffle([...articles])) {
+    try { const m = await wpPage(t); if (m?.thumb) { habCache.set(cacheKey, m.thumb); return m.thumb; } } catch { /* weiter */ }
   }
-  habCache.set(key, null);
+  habCache.set(cacheKey, null);
   return null;
+}
+/** Lebensraumfoto: zuerst passend zum Hauptlebensraum-Text, sonst zum Schlüssel */
+export async function getHabitatImage(key, text = '') {
+  const hit = text && HAB_TEXT_ARTICLES.find(([re]) => re.test(text));
+  if (hit) { const img = await firstThumb('t:' + hit[0].source, hit[1]); if (img) return img; }
+  return key ? firstThumb(key, HAB_ARTICLES[key] || []) : null;
 }
 
 /* ---------------- Ton: Sperr- und Merkliste ----------------
@@ -312,6 +348,7 @@ export function isPinned(sci, src) { return load('audioPin', {})[sci] === src; }
 export function resetAudioPrefs(sci) {
   const b = load('audioBan', {}); delete b[sci]; save('audioBan', b);
   const p = load('audioPin', {}); delete p[sci]; save('audioPin', p);
+  const r = load('audioRot', {}); delete r[sci]; save('audioRot', r);
   audioCache.delete(sci);
 }
 
@@ -449,6 +486,18 @@ export async function getAudio(sp) {
   }
   audioCache.set(sp.sci, list);
   return list;
+}
+
+/** Mit welcher Aufnahme soll eine Art starten?
+ *  Gemerkte Aufnahme („Als Standard merken“) → immer diese.
+ *  Sonst reihum unter den besten n Aufnahmen (die Liste ist nach Güte sortiert). */
+export function nextAudioIndex(sp, list, n = 5) {
+  if (!list.length) return 0;
+  const pinned = load('audioPin', {})[sp.sci];
+  if (pinned) { const i = list.findIndex(a => a.src === pinned); if (i >= 0) return i; }
+  const top = list.slice(0, n).map(a => a.src);
+  const src = rotate('audioRot', sp.sci, top);
+  return Math.max(0, list.findIndex(a => a.src === src));
 }
 
 export function hasCuratedAudio() { return Object.keys(XC).length > 0; }

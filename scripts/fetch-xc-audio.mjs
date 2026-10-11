@@ -25,8 +25,7 @@ if (!KEY) {
 const PER_SPECIES = 4;
 const only = process.argv[2]; // optional: nur eine Art, z. B. "Parus major"
 
-const listFile = path.resolve('src/data/species.json');
-const species = fs.existsSync(listFile) ? JSON.parse(fs.readFileSync(listFile, 'utf8')).species : BUILTIN;
+const species = BUILTIN;
 const outFile = path.resolve('src/data/audio.json');
 const out = fs.existsSync(outFile) ? JSON.parse(fs.readFileSync(outFile, 'utf8')) : {};
 
@@ -79,7 +78,7 @@ async function forSpecies(sp) {
   return picked;
 }
 
-const todo = species.filter(s => !only || s.sci === only);
+const todo = species.filter(s => !only || s.sci === only || s.de === only);
 for (const [i, sp] of todo.entries()) {
   process.stdout.write(`[${i + 1}/${todo.length}] ${sp.de} (${sp.sci}) … `);
   const recs = await forSpecies(sp);

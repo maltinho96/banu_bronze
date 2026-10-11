@@ -34,7 +34,34 @@ const strip = v => String(v || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').
 async function getJson(fetchFn, url) {
   const r = await fetchFn(url);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+  const j = await r.json();
+  if (j?.error) throw new Error(`${j.error.code || 'API-Fehler'}: ${j.error.info || ''}`.trim());
+  return j;
+}
+
+/** fetch mit Wiederholung bei Drosselung (429) und Serverfehlern (5xx). */
+export function withRetry(fetchFn, { tries = 5, baseDelay = 2000, log = () => {} } = {}) {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  return async url => {
+    let last;
+    for (let k = 0; k < tries; k++) {
+      try {
+        const r = await fetchFn(url);
+        if (r.status !== 429 && r.status < 500) return r;
+        const ra = Number(r.headers?.get?.('retry-after'));
+        const wait = ra > 0 ? ra * 1000 : baseDelay * 2 ** k;
+        log(`HTTP ${r.status} – warte ${Math.round(wait / 1000)} s`);
+        last = r;
+        await sleep(wait);
+      } catch (e) {
+        last = e;
+        log(`${e.message} – neuer Versuch`);
+        await sleep(baseDelay * 2 ** k);
+      }
+    }
+    if (last instanceof Error) throw last;
+    return last;
+  };
 }
 
 /** Wikidata-ID (Q…) zu einem wissenschaftlichen Namen */
@@ -106,11 +133,11 @@ export function selectPhotos(cands, n = 5) {
  * @param {{de:string, sci:string, syn?:string[]}} sp
  * @param {{fetch:Function, n?:number}} opts
  */
-export async function findSpeciesPhotos(sp, { fetch: fetchFn, n = 5 } = {}) {
+export async function findSpeciesPhotos(sp, { fetch: fetchFn, n = 5, onError = () => {} } = {}) {
   const sciNames = [sp.sci, ...(sp.syn || []).filter(s => /^[A-Z][a-z]+ [a-z]+$/.test(s))];
   let qid = null;
   for (const name of sciNames) {
-    try { qid = await wikidataId(fetchFn, name); } catch { /* weiter */ }
+    try { qid = await wikidataId(fetchFn, name); } catch (e) { onError(`Wikidata (${name}): ${e.message}`); }
     if (qid) break;
   }
   const cands = [];
@@ -120,14 +147,14 @@ export async function findSpeciesPhotos(sp, { fetch: fetchFn, n = 5 } = {}) {
     try {
       add(await commonsSearch(fetchFn,
         `haswbstatement:P180=${qid} incategory:Featured_pictures_on_Wikimedia_Commons|Quality_images`, 40), 2);
-    } catch { /* weiter */ }
+    } catch (e) { onError(`Commons (Quality): ${e.message}`); }
     if (cands.length < n) {
-      try { add(await commonsSearch(fetchFn, `haswbstatement:P180=${qid} filetype:bitmap`, 50), 1); } catch { /* weiter */ }
+      try { add(await commonsSearch(fetchFn, `haswbstatement:P180=${qid} filetype:bitmap`, 50), 1); } catch (e) { onError(`Commons (alle Fotos): ${e.message}`); }
     }
   }
   // Ohne Strukturdaten: Dateiname mit wissenschaftlichem Namen
   if (cands.length < n) {
-    try { add(await commonsSearch(fetchFn, `intitle:"${sp.sci}" filetype:bitmap`, 30), 0); } catch { /* weiter */ }
+    try { add(await commonsSearch(fetchFn, `intitle:"${sp.sci}" filetype:bitmap`, 30), 0); } catch (e) { onError(`Commons (Dateiname): ${e.message}`); }
   }
   return selectPhotos(cands, n);
 }

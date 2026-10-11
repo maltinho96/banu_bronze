@@ -197,7 +197,7 @@ export function generateQuestions(species) {
     if (sp.hab?.length) {
       const wrong = shuffle(habs.filter(h => !sp.hab.includes(h))).slice(0, 3).map(h => HAB_LABEL[h]);
       out.push(tag(mc(`hab-${sp.sci}`, 'bsg', 'leb', `In welchem Lebensraum brütet ${sp.de} typischerweise?`, HAB_LABEL[sp.hab[0]], wrong,
-        `${sp.de}: ${sp.hab.map(h => HAB_LABEL[h]).join(', ')} (laut Artenliste).`), sp.ord));
+        `${sp.de}: ${sp.hl ? sp.hl + ' – ' : ''}${sp.hab.map(h => HAB_LABEL[h]).join(', ')} (laut Artenliste).`), sp.ord));
     }
   });
 

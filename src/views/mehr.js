@@ -1,40 +1,23 @@
 import { h } from '../lib/util.js';
-import { save, remove } from '../lib/store.js';
+import { remove } from '../lib/store.js';
 import { getSpeciesList } from '../data/species.js';
-import { parseRows, pickSheet } from '../lib/parse-list.js';
 import { hasCuratedAudio, localPhotoCount, repoPhotoCount, autoPhotoCount, clearAutoPhotos } from '../lib/media.js';
 
 export function mount(root) {
   const list = getSpeciesList();
   const msg = h('p', { class: 'msg', 'aria-live': 'polite' });
-  const file = h('input', { type: 'file', accept: '.xlsx,.xls', onchange: async e => {
-    const f = e.target.files[0]; if (!f) return;
-    msg.textContent = 'Lese Tabelle …'; msg.className = 'msg';
-    try {
-      const XLSX = await import('xlsx');
-      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[pickSheet(wb.SheetNames)], { header: 1, blankrows: false });
-      const species = parseRows(rows);
-      save('uploadedList', { species });
-      msg.textContent = `${species.length} Arten übernommen. Gilt ab sofort in allen Bereichen.`;
-    } catch (err) { msg.textContent = 'Fehler: ' + err.message; msg.className = 'msg err'; }
-  } });
 
   root.append(
     h('section', { class: 'panel' },
       h('h2', {}, 'Artenliste'),
       h('p', {}, 'Aktiv: ', h('b', {}, list.name)),
-      list.source === 'builtin' ? h('p', { class: 'muted small' }, 'Eingebaut sind die 75 Arten der BANU-Artenliste Bronze. Lebensräume und wissenschaftliche Namen sind ergänzt; eine eigene xlsx-Liste kann sie hier ersetzen.') : '',
-      h('p', { class: 'muted small' }, 'Offizielle Liste: ', h('a', { href: 'https://banu-akademien.de/download-feldornithologie/', target: '_blank', rel: 'noopener' }, 'banu-akademien.de → Download Feldornithologie'),
-        '. Am besten einmal im Repo mit „npm run import-list“ umwandeln – dann ist sie auf allen Geräten dabei. Alternativ hier direkt auf diesem Gerät laden:'),
-      file, msg,
-      h('button', { class: 'btn ghost small', type: 'button', onclick: () => { remove('uploadedList'); msg.textContent = 'Import entfernt – eingebaute BANU-Artenliste aktiv.'; } }, 'Import entfernen')),
+      h('p', { class: 'muted small' }, 'Die 75 Arten der offiziellen BANU-Liste Bronze, mit Bruthabitaten aus der BANU-Tabelle.')),
     h('section', { class: 'panel' },
       h('h2', {}, 'Tonaufnahmen'),
       h('p', {}, hasCuratedAudio()
         ? 'Kuratierte xeno-canto-Aufnahmen sind eingebunden (audio.json). Commons dient nur als Ergänzung.'
         : 'Noch keine kuratierten Aufnahmen – es wird live auf Wikimedia Commons gesucht. Bessere Qualität: „npm run fetch-audio“ mit xeno-canto-API-Key (siehe README).'),
-      h('p', { class: 'muted small' }, 'Beim Üben nach dem Auflösen: „Passt nicht“ sperrt eine Aufnahme dauerhaft, „Als Standard merken“ setzt sie an die erste Stelle. Gespeichert wird nur auf diesem Gerät.'),
+      h('p', { class: 'muted small' }, 'Die Aufnahmen wechseln: Kommt eine Art wieder dran, spielt die App reihum eine andere der bis zu 5 besten Aufnahmen.'),
       h('p', { class: 'muted small' }, 'Kommt bei vielen Arten „Keine Aufnahme gefunden“, hilft ein Blick in die Browser-Konsole: Dort steht, ob die Commons-Suche fehlgeschlagen ist. Ohne Internetverbindung bleiben Bilder und Töne leer.')),
     h('section', { class: 'panel' },
       h('h2', {}, 'Bilder'),
@@ -50,8 +33,8 @@ export function mount(root) {
       h('p', { class: 'muted small' }, 'Deine Ergebnisse bleiben im Browser dieses Geräts gespeichert.'),
       h('button', { class: 'btn ghost small', type: 'button', onclick: () => {
         if (!confirm('Alle Lernstatistiken löschen?')) return;
-        ['artStats', 'topoStats', 'qStats', 'bzStats'].forEach(remove); msg.textContent = 'Statistiken gelöscht. Bild- und Tonauswahl bleiben erhalten.';
-      } }, 'Statistiken zurücksetzen')),
+        ['artStats', 'topoStats', 'qStats', 'bzStats'].forEach(remove); msg.textContent = 'Statistiken gelöscht. Die Bildauswahl bleibt erhalten.';
+      } }, 'Statistiken zurücksetzen'), msg),
     h('section', { class: 'panel' },
       h('h2', {}, 'Zur Prüfung (Bronze)'),
       h('p', {}, '30 zufällige Arten aus der 75er-Liste, optisch (Prachtkleid) und akustisch (typische Gesänge), dazu Grundwissen zu Systematik, Morphologie, Lebensräumen und Recht. Bestanden ab 80 %, mit Auszeichnung ab 90 %.'),

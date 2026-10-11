@@ -13,11 +13,7 @@ Lern-App fürs Handy: Artenkenntnis (Foto + Ton), äußere Topografie (antippbar
    npm run dev
    ```
    Codespaces öffnet Port 5173 im Browser. Zum Testen am Handy: Tab *Ports* → Port 5173 → Rechtsklick → *Port Visibility → Public*, dann die URL am Handy öffnen.
-5. **Offizielle Artenliste einbinden** (wichtig – die eingebaute Liste ist nur eine Übungsliste)
-   - `BANU_Feldornithologie_Begleitmaterial_Artenliste_2026.xlsx` von banu-akademien.de → *Download Feldornithologie* laden und in den Codespace ziehen
-   - `npm run import-list -- BANU_Feldornithologie_Begleitmaterial_Artenliste_2026.xlsx`
-   - Ausgabe prüfen: sollen **75 Arten** sein. Falls nicht: Blattnamen/Spalten in der Ausgabe ansehen und ggf. `src/lib/parse-list.js` anpassen.
-   - Lauttyp prüfen: in `src/data/species.json` steht pro Art `"snd": "song" | "call" | "drumming"` (geschätzt). Für Enten, Gänse, Möwen, Greifvögel usw. `call`, Buntspecht `drumming`.
+5. **Artenliste:** Die 75 Arten der BANU-Liste Bronze samt Bruthabitaten (BANU-Tabelle) sind fest eingebaut in `src/data/species-builtin.js`. Lauttyp (`song`/`call`/`drumming`) steht dort ebenfalls pro Art.
 6. **Bessere Tonaufnahmen holen** (behebt das „Ton passt nicht zum Vogel“-Problem am gründlichsten)
    - kostenlos bei xeno-canto.org registrieren, API-Key im Account kopieren
    - `XC_KEY=dein_key npm run fetch-audio` (dauert ca. 5–10 min, 1 Anfrage/Sekunde)
@@ -39,7 +35,7 @@ Lern-App fürs Handy: Artenkenntnis (Foto + Ton), äußere Topografie (antippbar
 | `src/views/arten.js` | Artentrainer: Prüfung (30 Arten, ½ Foto, ½ Ton), Üben mit Schwachstellen-Gewichtung, Artenliste zum Durchhören, Ton-Autostart |
 | `src/views/systematik.js` | Systematik: Baum, Liste, morphologische Artengruppen, Abdecken, Einordnen (Ordnung → Familie → Artengruppe), „Art nennen“ aus Ordnung/Familie/Artengruppe |
 | `src/data/taxonomy.js` | wissenschaftliche Namen, Reihenfolge und Merkmale der Ordnungen und Familien; Kladogramm der Großgruppen (Galloanserae, Neoaves, Telluraves …) nach den genomischen Stammbäumen; morphologische Artengruppen (Greifvögel, Limikolen, Gründelenten …) |
-| `src/views/topografie.js` | Topografie: Erkunden, „Wo ist …?“, Benennen, Am Foto, Begriffsübersicht – Bronze bzw. Silber/Gold |
+| `src/views/topografie.js` | Topografie: Erkunden, „Wo ist …?“, Benennen, Am Foto, Begriffsübersicht – Bronze |
 | `src/views/brutzeit.js` | Brutzeitcodes: Szenario → Code, A/B/C, Verwechslungspaare, Code → Bedeutung |
 | `src/views/fragen.js` | Wissensfragen (Katalog + aus der Artenliste generiert), Brutzeitcode- und Rote-Liste-Tabellen |
 | `src/data/topography.js` | Begriffe, Erklärungen, SVG-Zeichnungen (eigene, schematische) |
@@ -51,14 +47,15 @@ Lern-App fürs Handy: Artenkenntnis (Foto + Ton), äußere Topografie (antippbar
 | `src/data/species-builtin.js` | BANU-Artenliste Bronze (75 Arten) mit wiss. Namen, Familie, Ordnung, Lebensraum |
 | `src/lib/media.js` | Fotos (wechselnd, siehe unten), Töne (audio.json → Commons), Sperr-/Merkliste |
 | `src/lib/photo-search.js` | Fotosuche über Wikidata/Commons – gemeinsam für App und `fetch-photos` |
-| `scripts/` | Import der xlsx, Abruf der xeno-canto-Aufnahmen, Abruf der Fotos (`fetch-photos`) |
+| `scripts/` | Abruf der xeno-canto-Aufnahmen, Abruf der Fotos (`fetch-photos`) |
 
 ## Tonauswahl im Detail
 
 1. Aufnahmen aus `src/data/audio.json` (xeno-canto, exakte Art, Qualität A/B, passender Lauttyp, bevorzugt Deutschland, ohne Jungvögel/Klangattrappe/Begleitarten).
 2. Nur wenn dort < 3 Aufnahmen: Wikimedia Commons in drei Stufen – wissenschaftlicher Name im Dateinamen, dann Volltextsuche, dann deutscher Name im Dateinamen. Gewertet wird immer nur, was den Namen wirklich im Dateinamen trägt.
 3. Abgespielt wird bevorzugt die mp3-Umwandlung von Commons (Safari auf dem iPhone spielt kein Ogg Vorbis), die Originaldatei liegt als zweite Quelle dahinter.
-3. In der App nach dem Auflösen: **„Passt nicht“** sperrt eine Aufnahme dauerhaft, **„Als Standard merken“** setzt sie nach vorn. Zurücksetzen pro Art im Modus *Artenliste*.
+4. Die Aufnahmen wechseln: Kommt eine Art erneut dran, spielt die App reihum eine der 5 bestbewerteten Aufnahmen – jede einmal, bevor sich eine wiederholt.
+5. Im Ton-Modus startet die Aufnahme beim Weiterklicken automatisch (abschaltbar in den Einstellungen des Artentrainers).
 
 ## Wechselnde Fotos im Artentrainer
 
@@ -85,7 +82,7 @@ Gesucht wird über Wikidata („zeigt Art X“), bevorzugt Featured- und Quality
 
 Standardmäßig zeigt die App das Wikipedia-Artikelbild. Das passt nicht immer – im Foto-Modus der Topografie soll das Merkmal ja gut sichtbar sein.
 
-1. In der App: *Mehr → Bilder auswählen*. Gezeigt werden nur die Merkmale der oben eingestellten Stufe – in Bronze also die 19 Bronze-Merkmale.
+1. In der App: *Mehr → Bilder auswählen*. Gezeigt werden nur die 19 Bronze-Merkmale.
 2. Motiv antippen und beliebig viele passende Bilder auswählen. Im Training wird abwechselnd eines davon gezeigt. Drei Wege:
    - aus den Kandidaten antippen (nochmal antippen entfernt wieder),
    - *Art suchen* – eine andere Art eingeben, die das Merkmal besser zeigt (z. B. „Fitis“ für den hellen Tarsus),

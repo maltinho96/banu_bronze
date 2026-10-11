@@ -109,11 +109,13 @@ textarea { resize: vertical; }
 .media .ph { color: var(--ink-3); padding: 20px; text-align: center; font-size: .92rem; }
 .badge { position: absolute; top: 10px; left: 10px; background: rgba(29,39,33,.85); color: #fff; font-size: .8rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
 .strip { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
-.strip.with-hab { grid-template-columns: 1fr 1.6fr .8fr; }
-.strip:not(.with-hab) .strip-hab { display: none; }
 .strip > div { padding: 8px 12px; border-right: 1px solid var(--line); display: flex; flex-direction: column; font-size: .95rem; }
 .strip > div:last-child { border-right: 0; }
 .strip small { font-size: .75rem; color: var(--ink-3); }
+.habline { padding: 8px 12px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: .95rem; }
+.habline small, .rhab small { font-size: .75rem; color: var(--ink-3); width: 100%; }
+.habline .muted { font-size: .82rem; }
+.rhab { margin: 4px 0 6px; display: flex; flex-wrap: wrap; gap: 0 8px; }
 
 .audiozone { padding: 12px 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
 .audiozone audio, .sp-body audio { width: 100%; }

@@ -1,8 +1,8 @@
 import { h, $, norm, shuffle, levenshtein, weightedSample, escapeHtml } from '../lib/util.js';
 import { load, save, recordResult, stats, weight } from '../lib/store.js';
 import { getSpeciesList } from '../data/species.js';
-import { HAB_LABEL } from '../data/species-builtin.js';
-import { getBirdMedia, getHabitatImage, getAudio, banAudio, pinAudio, isPinned, resetAudioPrefs, setAudioSources, nextSpeciesPhoto } from '../lib/media.js';
+import { HAB_LABEL, habMain, habAll, sciBase } from '../data/species-builtin.js';
+import { getBirdMedia, getHabitatImage, getAudio, setAudioSources, nextSpeciesPhoto, nextAudioIndex } from '../lib/media.js';
 
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 const SND_LABEL = { song: 'Gesang', call: 'Ruf', drumming: 'Trommeln' };
@@ -67,11 +67,14 @@ export function mount(root) {
   const media = h('div', { class: 'media' }, h('div', { class: 'ph' }, 'Lade …'));
   const badge = h('div', { class: 'badge' });
   media.append(badge);
-  const fcMonth = h('span'), fcHab = h('span'), fcNum = h('span');
+  const fcMonth = h('span'), fcNum = h('span');
+  const fcHab = h('b'), fcHabAll = h('span', { class: 'muted' });
   const strip = h('div', { class: 'strip' },
     h('div', {}, h('small', {}, 'Monat'), fcMonth),
-    h('div', { class: 'strip-hab' }, h('small', {}, 'Lebensraum'), fcHab),
     h('div', {}, h('small', {}, 'Frage'), fcNum));
+  // Bruthabitat als Hilfe beim Ton-Raten (eigene Zeile, damit lange Texte passen)
+  const habLine = h('div', { class: 'habline', hidden: true },
+    h('small', {}, 'Bruthabitat'), fcHab, fcHabAll);
 
   const player = h('audio', { controls: true, preload: 'none' });
   // Eine einzelne fehlende Quelle ist normal (nicht zu jeder Datei gibt es eine
@@ -84,11 +87,8 @@ export function mount(root) {
   const audioTitle = h('p', { class: 'audio-title' });
   const audioInfo = h('a', { class: 'audio-info', target: '_blank', rel: 'noopener' });
   const otherBtn = h('button', { class: 'btn ghost small', type: 'button', onclick: () => { audioPtr++; loadAudio(true); } }, 'Andere Aufnahme');
-  const banBtn = h('button', { class: 'btn ghost small', type: 'button', onclick: banCurrent }, 'Passt nicht');
-  const pinBtn = h('button', { class: 'btn ghost small', type: 'button', onclick: pinCurrent }, 'Als Standard merken');
-  const curate = h('div', { class: 'curate', hidden: true }, banBtn, pinBtn);
   const audioZone = h('div', { class: 'audiozone', hidden: true }, player, audioTitle, audioInfo,
-    h('div', { class: 'audio-actions' }, otherBtn), curate);
+    h('div', { class: 'audio-actions' }, otherBtn));
 
   const guess = h('input', { type: 'text', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', enterkeyhint: 'done', placeholder: 'Art (deutsch oder wissenschaftlich)' });
   guess.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); reveal(); } });
@@ -100,6 +100,7 @@ export function mount(root) {
   const rName = h('h2', { class: 'rname' });
   const rSci = h('p', { class: 'rsci' });
   const rChips = h('div', { class: 'chips' });
+  const rHab = h('p', { class: 'rhab' });
   const rImg = h('img', { alt: '', loading: 'lazy' });
   const rImgWrap = h('div', { class: 'rimg', hidden: true }, rImg);
   const rExtract = h('p', { class: 'extract' });
@@ -110,12 +111,12 @@ export function mount(root) {
   const nextBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => grade(verdict) }, 'Weiter');
   const flipBtn = h('button', { class: 'btn ghost', type: 'button', onclick: () => { verdict = !verdict; paintVerdict(); } });
   const revealBox = h('div', { class: 'reveal', hidden: true },
-    rVerdict, rName, rSci, rChips, rImgWrap, rExtract,
+    rVerdict, rName, rSci, rHab, rChips, rImgWrap, rExtract,
     rCredit,
     h('div', { class: 'links' }, rWiki, rXC, listenBtn),
     h('div', { class: 'grade' }, flipBtn, nextBtn));
 
-  const card = h('section', { class: 'card', hidden: true }, media, strip, audioZone, answerBox, revealBox);
+  const card = h('section', { class: 'card', hidden: true }, media, strip, habLine, audioZone, answerBox, revealBox);
   const endScreen = h('section', { class: 'panel end', hidden: true });
   const listView = h('section', { class: 'specieslist', hidden: true });
 
@@ -186,7 +187,7 @@ export function mount(root) {
     if (idx >= deck.length) return finish();
     const my = ++token;
     const { sp, mode } = deck[idx];
-    revealBox.hidden = true; answerBox.hidden = false; curate.hidden = true;
+    revealBox.hidden = true; answerBox.hidden = false;
     guess.value = ''; guess.disabled = false;
     rImgWrap.hidden = true;
     shownPhoto = null; rCredit.textContent = '';
@@ -202,17 +203,18 @@ export function mount(root) {
 
     if (mode === 'akustisch') {
       badge.textContent = 'Ton';
-      strip.classList.add('with-hab');
       const hk = sp.hab?.[0];
-      fcHab.textContent = HAB_LABEL[hk] || '—';
+      fcHab.textContent = habMain(sp) || '—';
+      fcHabAll.textContent = sp.hab?.length ? `(${habAll(sp)})` : '';
+      habLine.hidden = false;
       audioZone.hidden = false;
       setMedia(null, 'Lade Lebensraumfoto …', 'cover');
-      const [img] = await Promise.all([hk ? getHabitatImage(hk) : null, loadAudioFor(sp, cfg.autoplay)]);
+      const [img] = await Promise.all([getHabitatImage(hk, sp.hl), loadAudioFor(sp, cfg.autoplay)]);
       if (my !== token) return;
       setMedia(img, 'Kein Lebensraumfoto – hör einfach genau hin', 'cover');
     } else {
       badge.textContent = 'Foto';
-      strip.classList.remove('with-hab');
+      habLine.hidden = true;
       audioZone.hidden = true;
       setMedia(null, 'Lade Foto …', 'contain');
       const ph = await nextSpeciesPhoto(sp);
@@ -227,7 +229,10 @@ export function mount(root) {
     audioZone.hidden = false;
     audioTitle.textContent = 'Suche Aufnahmen …';
     audioInfo.textContent = '';
-    audio = await getAudio(sp); audioPtr = 0;
+    audio = await getAudio(sp);
+    // Ton-Frage: bei jeder Wiederholung der Art eine andere Aufnahme (reihum).
+    // „Stimme anhören“ nach dem Auflösen zeigt dieselbe Aufnahme wie in der Frage.
+    audioPtr = deck[idx]?.mode === 'akustisch' && !revealBox.hidden ? audioPtr : nextAudioIndex(sp, audio);
     loadAudio(play);
   }
   function loadAudio(play) {
@@ -247,21 +252,7 @@ export function mount(root) {
     audioTitle.textContent = solved ? a.title : `Aufnahme ${audioPtr % audio.length + 1} von ${audio.length}`;
     audioInfo.textContent = solved ? a.info : a.info.replace(/·.*$/, '').trim();
     audioInfo.href = a.link;
-    pinBtn.textContent = sp && isPinned(sp.sci, a.src) ? 'Gemerkt ✓' : 'Als Standard merken';
     if (play) player.play().catch(() => { /* Autoplay blockiert – Nutzer tippt selbst auf Play */ });
-  }
-  function banCurrent() {
-    const sp = deck[idx].sp, a = audio[audioPtr % audio.length];
-    if (!a) return;
-    banAudio(sp.sci, a.src);
-    audio = audio.filter(x => x.src !== a.src);
-    loadAudio(true);
-  }
-  function pinCurrent() {
-    const sp = deck[idx].sp, a = audio[audioPtr % audio.length];
-    if (!a) return;
-    pinAudio(sp.sci, a.src);
-    pinBtn.textContent = 'Gemerkt ✓';
   }
 
   /* ---------- Antworten ---------- */
@@ -314,7 +305,9 @@ export function mount(root) {
     rChips.innerHTML = '';
     [sp.ord, sp.fam].filter(Boolean).forEach(t => rChips.append(h('span', { class: 'chip' }, t)));
     (sp.hab || []).forEach(k => rChips.append(h('span', { class: 'chip hab' }, HAB_LABEL[k] || k)));
-    rXC.href = `https://xeno-canto.org/species/${sp.sci.replace(/ /g, '-')}`;
+    rHab.innerHTML = '';
+    if (sp.hl || sp.hab?.length) rHab.append(h('small', {}, 'Bruthabitat'), h('b', {}, sp.hl || habMain(sp)));
+    rXC.href = `https://xeno-canto.org/species/${sciBase(sp).replace(/ /g, '-')}`;
     listenBtn.hidden = mode === 'akustisch';
     listenBtn.textContent = `${SND_LABEL[sp.snd] || 'Stimme'} anhören`;
     rCredit.innerHTML = '';
@@ -331,7 +324,6 @@ export function mount(root) {
       if (m.thumb) { rImg.src = m.thumb; rImgWrap.hidden = mode !== 'akustisch'; }
     });
     revealBox.hidden = false;
-    curate.hidden = false;
     if (mode === 'akustisch') loadAudio(false); // Titel jetzt mit Artinfos
     paintVerdict();
     revealBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -405,7 +397,6 @@ export function mount(root) {
         note.innerHTML = `${escapeHtml(r.title)}<br><a href="${r.link}" target="_blank" rel="noopener">${escapeHtml(r.info)}</a>`;
         playBtn.textContent = list2.length > 1 ? 'Nächste Aufnahme' : 'Nochmal';
       } }, `${SND_LABEL[sp.snd] || 'Stimme'} abspielen`);
-      const resetBtn = h('button', { class: 'linkbtn', type: 'button', onclick: () => { resetAudioPrefs(sp.sci); list2 = []; ptr = 0; note.textContent = 'Ton-Auswahl zurückgesetzt.'; } }, 'Ton-Auswahl zurücksetzen');
       const el = h('details', { class: 'sp', 'data-i': i },
         h('summary', {},
           h('img', { alt: '', hidden: true }),
@@ -414,11 +405,11 @@ export function mount(root) {
         h('div', { class: 'sp-body' },
           h('div', { class: 'chips' }, ...[sp.ord, sp.fam].filter(Boolean).map(t => h('span', { class: 'chip' }, t)),
             ...(sp.hab || []).map(k => h('span', { class: 'chip hab' }, HAB_LABEL[k]))),
+          sp.hl ? h('p', { class: 'rhab' }, h('small', {}, 'Bruthabitat'), h('b', {}, sp.hl)) : null,
           playBtn, player2, note,
           h('div', { class: 'links' },
             h('a', { href: `https://de.wikipedia.org/wiki/${encodeURIComponent(sp.de)}`, target: '_blank', rel: 'noopener' }, 'Wikipedia'),
-            h('a', { href: `https://xeno-canto.org/species/${sp.sci.replace(/ /g, '-')}`, target: '_blank', rel: 'noopener' }, 'xeno-canto'),
-            resetBtn)));
+            h('a', { href: `https://xeno-canto.org/species/${sciBase(sp).replace(/ /g, '-')}`, target: '_blank', rel: 'noopener' }, 'xeno-canto'))));
       listView.append(el);
       io.observe(el);
     });

@@ -65,9 +65,7 @@ export function mount(root, ctx) {
     h('section', { class: 'panel' },
       h('h2', {}, 'Bilder auswählen'),
       h('p', { class: 'muted small' }, 'Pro Merkmal kannst du mehrere Bilder sammeln – auch von verschiedenen Arten. Im Training wird dann abwechselnd eines davon gezeigt. Die Auswahl gilt sofort auf diesem Gerät; für alle Geräte unten exportieren und als src/data/photos.json ins Repo legen.'),
-      h('p', { class: 'muted small' }, lvl === 'b'
-        ? 'Stufe Bronze: nur die Merkmale, die in der Bronze-Prüfung vorkommen. Für mehr oben auf Silber umschalten.'
-        : 'Stufe Silber/Gold: alle Merkmale.'),
+      h('p', { class: 'muted small' }, 'Nur die Merkmale, die in der Bronze-Prüfung vorkommen.'),
       h('div', { class: 'ctrl' }, h('span', { class: 'lbl' }, 'Bereich'),
         seg([['topo', 'Merkmale'], ['art', 'Arten']], v => { group = v; render(); })),
       h('div', { class: 'ctrl' }, h('span', { class: 'lbl' }, 'Anzeigen'),

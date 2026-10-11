@@ -12,38 +12,46 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { findSpeciesPhotos } from '../src/lib/photo-search.js';
+import { findSpeciesPhotos, withRetry } from '../src/lib/photo-search.js';
 import { BUILTIN } from '../src/data/species-builtin.js';
 
 const args = process.argv.slice(2);
 const force = args.includes('--force');
 const nIdx = args.indexOf('--n');
 const N = nIdx >= 0 ? Number(args[nIdx + 1]) || 5 : 5;
-const only = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--n');
+const only = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--n'); // eine oder mehrere Arten
 
-const listFile = path.resolve('src/data/species.json');
-const species = fs.existsSync(listFile) ? JSON.parse(fs.readFileSync(listFile, 'utf8')).species : BUILTIN;
+const species = BUILTIN;
 const outFile = path.resolve('src/data/photos.json');
 const out = fs.existsSync(outFile) ? JSON.parse(fs.readFileSync(outFile, 'utf8')) : {};
 
 // Wikimedia verlangt einen aussagekräftigen User-Agent für Skripte
 const UA = 'banu-feldornithologie-trainer/1.0 (Lern-App; github.com)';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const politeFetch = async url => { await sleep(250); return fetch(url, { headers: { 'User-Agent': UA, 'Api-User-Agent': UA } }); };
+// Wikimedia drosselt schnelle Anfragen (HTTP 429). Deshalb: Pause zwischen
+// den Anfragen und bei Drosselung warten und neu versuchen.
+const plainFetch = async url => { await sleep(700); return fetch(url, { headers: { 'User-Agent': UA, 'Api-User-Agent': UA } }); };
+const politeFetch = withRetry(plainFetch, { tries: 5, baseDelay: 3000, log: m => process.stdout.write(`(${m}) `) });
 
-const todo = species.filter(sp => (only ? sp.sci === only || sp.de === only : true));
-if (!todo.length) { console.error(`Art „${only}“ nicht in der Liste.`); process.exit(1); }
+const todo = species.filter(sp => (only.length ? only.includes(sp.sci) || only.includes(sp.de) : true));
+const missing = only.filter(o => !species.some(sp => sp.sci === o || sp.de === o));
+if (missing.length) { console.error(`Nicht in der Liste: ${missing.join(', ')}`); process.exit(1); }
 
-let added = 0, kept = 0, empty = [];
+let added = 0, kept = 0, empty = [], failed = [];
 for (const [i, sp] of todo.entries()) {
   const key = `art:${sp.sci}`;
   const has = Array.isArray(out[key]) ? out[key].length : out[key] ? 1 : 0;
-  if (has && !force && !only) { kept++; continue; }
+  if (has && !force && !only.length) { kept++; continue; }
   process.stdout.write(`[${i + 1}/${todo.length}] ${sp.de} … `);
   let list = [];
-  try { list = await findSpeciesPhotos(sp, { fetch: politeFetch, n: N }); }
-  catch (e) { console.log(`Fehler: ${e.message}`); continue; }
-  if (!list.length) { console.log('keine Fotos gefunden'); empty.push(sp.de); continue; }
+  const errors = [];
+  try { list = await findSpeciesPhotos(sp, { fetch: politeFetch, n: N, onError: m => errors.push(m) }); }
+  catch (e) { errors.push(e.message); }
+  if (!list.length) {
+    if (errors.length) { console.log(`FEHLER – ${errors[0]}`); failed.push(sp.de); }
+    else { console.log('keine Fotos gefunden'); empty.push(sp.de); }
+    continue;
+  }
   out[key] = list;
   added++;
   const q = list.filter(x => x.q === 2).length;
@@ -52,5 +60,6 @@ for (const [i, sp] of todo.entries()) {
 }
 fs.writeFileSync(outFile, JSON.stringify(out, null, 1));
 console.log(`\nFertig: ${added} Arten neu, ${kept} unverändert → ${path.relative(process.cwd(), outFile)}`);
+if (failed.length) console.log(`Wegen Fehlern übersprungen: ${failed.join(', ')}\n→ Einfach nochmal „npm run fetch-photos“ starten – vorhandene Arten werden übersprungen, nur die Lücken werden gefüllt.`);
 if (empty.length) console.log(`Ohne Treffer: ${empty.join(', ')} – im Bild-Kurator von Hand ergänzen.`);
 console.log('Stichprobe ansehen: App starten → Mehr → Bilder auswählen → Bereich „Arten“.');
