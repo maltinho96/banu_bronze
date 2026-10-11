@@ -2,6 +2,7 @@ import { h, $, norm, shuffle, levenshtein, weightedSample, escapeHtml } from '..
 import { load, save, recordResult, stats, weight } from '../lib/store.js';
 import { getSpeciesList } from '../data/species.js';
 import { HAB_LABEL, habMain, habAll, sciBase } from '../data/species-builtin.js';
+import { MERK } from '../data/merksaetze.js';
 import { getBirdMedia, getHabitatImage, getAudio, setAudioSources, nextSpeciesPhoto, nextAudioIndex } from '../lib/media.js';
 
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -102,17 +103,18 @@ export function mount(root) {
   const rSci = h('p', { class: 'rsci' });
   const rChips = h('div', { class: 'chips' });
   const rHab = h('p', { class: 'rhab' });
+  const rMerk = h('p', { class: 'merk', hidden: true });
   const rImg = h('img', { alt: '', loading: 'lazy' });
   const rImgWrap = h('div', { class: 'rimg', hidden: true }, rImg);
   const rExtract = h('p', { class: 'extract' });
   const rCredit = h('p', { class: 'muted small photo-credit' });
   const rWiki = h('a', { target: '_blank', rel: 'noopener' }, 'Wikipedia');
   const rXC = h('a', { target: '_blank', rel: 'noopener' }, 'xeno-canto');
-  const listenBtn = h('button', { class: 'btn ghost small', type: 'button', onclick: () => loadAudioFor(deck[idx].sp, true) }, 'Stimme anhören');
+  const listenBtn = h('button', { class: 'btn ghost small', type: 'button', onclick: () => { rMerk.hidden = !rMerk.childNodes.length; loadAudioFor(deck[idx].sp, true); } }, 'Stimme anhören');
   const nextBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => grade(verdict) }, 'Weiter');
   const flipBtn = h('button', { class: 'btn ghost', type: 'button', onclick: () => { verdict = !verdict; paintVerdict(); } });
   const revealBox = h('div', { class: 'reveal', hidden: true },
-    rVerdict, rName, rSci, rHab, rChips, rImgWrap, rExtract,
+    rVerdict, rName, rSci, rMerk, rHab, rChips, rImgWrap, rExtract,
     rCredit,
     h('div', { class: 'links' }, rWiki, rXC, listenBtn),
     h('div', { class: 'grade' }, flipBtn, nextBtn));
@@ -306,6 +308,10 @@ export function mount(root) {
     rChips.innerHTML = '';
     [sp.ord, sp.fam].filter(Boolean).forEach(t => rChips.append(h('span', { class: 'chip' }, t)));
     (sp.hab || []).forEach(k => rChips.append(h('span', { class: 'chip hab' }, HAB_LABEL[k] || k)));
+    // Merksatz zur Stimme – im Ton-Modus immer, beim Foto nach „Stimme anhören“
+    rMerk.innerHTML = '';
+    if (MERK[sp.de]) rMerk.append(h('small', {}, `Merksatz ${SND_LABEL[sp.snd] || 'Stimme'}`), MERK[sp.de]);
+    rMerk.hidden = !MERK[sp.de] || mode !== 'akustisch';
     rHab.innerHTML = '';
     if (sp.hl || sp.hab?.length) rHab.append(h('small', {}, 'Bruthabitat'), h('b', {}, sp.hl || habMain(sp)));
     rXC.href = `https://xeno-canto.org/species/${sciBase(sp).replace(/ /g, '-')}`;
@@ -407,6 +413,7 @@ export function mount(root) {
           h('div', { class: 'chips' }, ...[sp.ord, sp.fam].filter(Boolean).map(t => h('span', { class: 'chip' }, t)),
             ...(sp.hab || []).map(k => h('span', { class: 'chip hab' }, HAB_LABEL[k]))),
           sp.hl ? h('p', { class: 'rhab' }, h('small', {}, 'Bruthabitat'), h('b', {}, sp.hl)) : null,
+          MERK[sp.de] ? h('p', { class: 'merk' }, h('small', {}, 'Merksatz'), MERK[sp.de]) : null,
           playBtn, player2, note,
           h('div', { class: 'links' },
             h('a', { href: `https://de.wikipedia.org/wiki/${encodeURIComponent(sp.de)}`, target: '_blank', rel: 'noopener' }, 'Wikipedia'),
