@@ -2,7 +2,7 @@ import { h, $, norm, shuffle, levenshtein, weightedSample, escapeHtml } from '..
 import { load, save, recordResult, stats, weight } from '../lib/store.js';
 import { getSpeciesList } from '../data/species.js';
 import { HAB_LABEL } from '../data/species-builtin.js';
-import { getBirdMedia, getHabitatImage, getAudio, banAudio, pinAudio, isPinned, resetAudioPrefs, setAudioSources, getCuratedPhoto } from '../lib/media.js';
+import { getBirdMedia, getHabitatImage, getAudio, banAudio, pinAudio, isPinned, resetAudioPrefs, setAudioSources, nextSpeciesPhoto } from '../lib/media.js';
 
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 const SND_LABEL = { song: 'Gesang', call: 'Ruf', drumming: 'Trommeln' };
@@ -14,6 +14,7 @@ export function mount(root) {
   const cfg = { ...DEFAULT_CFG, ...load('artenCfg', {}) };
   let deck = [], idx = -1, right = 0, answered = 0, wrongs = [];
   let audio = [], audioPtr = 0, token = 0, verdict = false;
+  let shownPhoto = null; // aktuell gezeigtes Foto (für den Bildnachweis nach dem Auflösen)
 
   /* ---------- Steuerung ---------- */
   const seg = (key, options) => {
@@ -102,6 +103,7 @@ export function mount(root) {
   const rImg = h('img', { alt: '', loading: 'lazy' });
   const rImgWrap = h('div', { class: 'rimg', hidden: true }, rImg);
   const rExtract = h('p', { class: 'extract' });
+  const rCredit = h('p', { class: 'muted small photo-credit' });
   const rWiki = h('a', { target: '_blank', rel: 'noopener' }, 'Wikipedia');
   const rXC = h('a', { target: '_blank', rel: 'noopener' }, 'xeno-canto');
   const listenBtn = h('button', { class: 'btn ghost small', type: 'button', onclick: () => loadAudioFor(deck[idx].sp, true) }, 'Stimme anhören');
@@ -109,6 +111,7 @@ export function mount(root) {
   const flipBtn = h('button', { class: 'btn ghost', type: 'button', onclick: () => { verdict = !verdict; paintVerdict(); } });
   const revealBox = h('div', { class: 'reveal', hidden: true },
     rVerdict, rName, rSci, rChips, rImgWrap, rExtract,
+    rCredit,
     h('div', { class: 'links' }, rWiki, rXC, listenBtn),
     h('div', { class: 'grade' }, flipBtn, nextBtn));
 
@@ -186,6 +189,7 @@ export function mount(root) {
     revealBox.hidden = true; answerBox.hidden = false; curate.hidden = true;
     guess.value = ''; guess.disabled = false;
     rImgWrap.hidden = true;
+    shownPhoto = null; rCredit.textContent = '';
     player.pause(); player.removeAttribute('src');
     fcNum.textContent = idx + 1;
     const months = mode === 'akustisch' ? [2, 3, 4, 5, 6] : [...Array(12).keys()];
@@ -211,10 +215,10 @@ export function mount(root) {
       strip.classList.remove('with-hab');
       audioZone.hidden = true;
       setMedia(null, 'Lade Foto …', 'contain');
-      const curated = getCuratedPhoto(`art:${sp.sci}`);
-      const m = curated ? { thumb: curated.thumb } : await getBirdMedia(sp);
+      const ph = await nextSpeciesPhoto(sp);
       if (my !== token) return;
-      setMedia(m.thumb, 'Kein Foto gefunden – trotzdem raten und auflösen', 'contain');
+      shownPhoto = ph;
+      setMedia(ph?.thumb, 'Kein Foto gefunden – trotzdem raten und auflösen', 'contain');
     }
     if (isTyping && matchMedia('(hover:hover)').matches) guess.focus();
   }
@@ -313,6 +317,13 @@ export function mount(root) {
     rXC.href = `https://xeno-canto.org/species/${sp.sci.replace(/ /g, '-')}`;
     listenBtn.hidden = mode === 'akustisch';
     listenBtn.textContent = `${SND_LABEL[sp.snd] || 'Stimme'} anhören`;
+    rCredit.innerHTML = '';
+    if (mode !== 'akustisch' && shownPhoto) {
+      const who = [shownPhoto.by, shownPhoto.lic].filter(Boolean).join(' · ');
+      rCredit.append('Foto: ', shownPhoto.link
+        ? h('a', { href: shownPhoto.link, target: '_blank', rel: 'noopener' }, who || 'Wikimedia Commons')
+        : (who || 'Wikipedia'));
+    }
     getBirdMedia(sp).then(m => {
       if (deck[idx]?.sp !== sp) return;
       rExtract.textContent = m.extract || '';

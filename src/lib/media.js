@@ -12,6 +12,7 @@
  */
 import { load, save } from './store.js';
 import { norm, shuffle } from './util.js';
+import { findSpeciesPhotos } from './photo-search.js';
 
 const xcFiles = import.meta.glob('../data/audio.json', { eager: true, import: 'default' });
 const XC = Object.values(xcFiles)[0] || {};
@@ -208,6 +209,71 @@ export async function getPhotoCandidates(article, sci) {
   candCache.set(ck, out);
   return out;
 }
+
+/* ---------------- Mehrere Fotos pro Art, reihum ----------------
+ * Reihenfolge der Quellen:
+ *  1. selbst ausgewählte Bilder (Bild-Kurator, dieses Gerät)
+ *  2. src/data/photos.json im Repo (npm run fetch-photos oder Kurator-Export)
+ *  3. automatisch gesuchte Commons-Fotos – einmal geholt, dann gemerkt
+ *  4. Notlösung: Wikipedia-Artikelbild
+ * Gezeigt wird reihum: erst wenn alle Bilder einer Art dran waren, wieder von vorn
+ * (neu gemischt, ohne das zuletzt gezeigte direkt zu wiederholen). */
+const AUTO_TTL = 60 * 24 * 3600 * 1000;      // 60 Tage
+const FALLBACK_TTL = 24 * 3600 * 1000;       // Artikelbild nur 1 Tag merken, dann neu suchen
+const autoInflight = new Map();
+
+export async function getSpeciesPhotos(sp) {
+  const cur = getCuratedPhotos(`art:${sp.sci}`);
+  if (cur.length) return cur;
+  const auto = load('autoPhotos', {});
+  const hit = auto[sp.sci];
+  if (hit && Date.now() - hit.t < (hit.fallback ? FALLBACK_TTL : AUTO_TTL) && hit.list?.length) return hit.list;
+  if (autoInflight.has(sp.sci)) return autoInflight.get(sp.sci);
+  const job = (async () => {
+    let list = [];
+    try { list = await findSpeciesPhotos(sp, { fetch: (u) => fetch(u), n: 5 }); }
+    catch (e) { console.warn('Fotosuche:', sp.de, e.message); }
+    let fallback = false;
+    if (!list.length) {
+      const m = await getBirdMedia(sp);
+      if (m.thumb) { list = [{ src: m.thumb, thumb: m.thumb, title: `${sp.de} (Artikelbild)`, by: '', lic: '', link: m.url, sp: sp.de }]; fallback = true; }
+    }
+    if (list.length) {
+      const all = load('autoPhotos', {});
+      all[sp.sci] = { t: Date.now(), list, fallback };
+      save('autoPhotos', all);
+    }
+    return list;
+  })();
+  autoInflight.set(sp.sci, job);
+  try { return await job; } finally { autoInflight.delete(sp.sci); }
+}
+
+/** Nächstes Foto einer Art – reihum, nie zweimal direkt hintereinander. */
+export async function nextSpeciesPhoto(sp) {
+  const list = await getSpeciesPhotos(sp);
+  if (!list.length) return null;
+  if (list.length === 1) return list[0];
+  const rot = load('photoRot', {});
+  const srcs = list.map(x => x.src);
+  let r = rot[sp.sci];
+  const valid = r && Array.isArray(r.order) && r.order.length === srcs.length && r.order.every(x => srcs.includes(x));
+  if (!valid || r.i >= r.order.length) {
+    const last = valid ? r.order[r.order.length - 1] : r?.last;
+    let order = shuffle(srcs.slice()), tries = 0;
+    while (order[0] === last && ++tries < 10) order = shuffle(srcs.slice());
+    r = { order, i: 0 };
+  }
+  const src = r.order[r.i++];
+  r.last = src;
+  rot[sp.sci] = r;
+  save('photoRot', rot);
+  return list.find(x => x.src === src) || list[0];
+}
+
+/** Automatisch gesuchte Fotos vergessen (z. B. nach einer Bildauswahl im Kurator). */
+export function clearAutoPhotos() { save('autoPhotos', {}); save('photoRot', {}); }
+export function autoPhotoCount() { return Object.keys(load('autoPhotos', {})).length; }
 
 /* ---------------- Lebensraumfoto ---------------- */
 const HAB_ARTICLES = {

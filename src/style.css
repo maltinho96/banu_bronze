@@ -418,3 +418,5 @@ details.sys-fam .sys-note { margin-left: 30px; }
 .sys-span { font-weight: 700; color: var(--ink); }
 .sys-sp-grp { padding-left: 14px; }
 .sys-nametoggle { margin: 4px 2px 0; color: var(--ink-2); }
+
+.photo-credit { margin: 4px 0 0; overflow-wrap: anywhere; }

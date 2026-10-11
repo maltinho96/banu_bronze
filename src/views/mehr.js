@@ -2,7 +2,7 @@ import { h } from '../lib/util.js';
 import { save, remove } from '../lib/store.js';
 import { getSpeciesList } from '../data/species.js';
 import { parseRows, pickSheet } from '../lib/parse-list.js';
-import { hasCuratedAudio, localPhotoCount, repoPhotoCount } from '../lib/media.js';
+import { hasCuratedAudio, localPhotoCount, repoPhotoCount, autoPhotoCount, clearAutoPhotos } from '../lib/media.js';
 
 export function mount(root) {
   const list = getSpeciesList();
@@ -40,7 +40,11 @@ export function mount(root) {
       h('h2', {}, 'Bilder'),
       h('p', {}, `Ausgewählt: ${localPhotoCount()} auf diesem Gerät, ${repoPhotoCount()} im Repo.`),
       h('p', { class: 'muted small' }, 'Im Bild-Kurator sammelst du pro Merkmal beliebig viele passende Bilder – auch von verschiedenen Arten oder über einen eigenen Link. Im Training wird abwechselnd eines davon gezeigt. Ohne Auswahl nimmt die App das Wikipedia-Artikelbild.'),
-      h('a', { class: 'btn primary wide', href: '#/bilder', style: 'display:block;text-align:center;text-decoration:none' }, 'Bilder auswählen')),
+      h('a', { class: 'btn primary wide', href: '#/bilder', style: 'display:block;text-align:center;text-decoration:none' }, 'Bilder auswählen'),
+      h('p', { class: 'muted small' }, `Beim Artentrainer wechseln die Fotos: pro Art bis zu 5 Bilder, reihum. Arten ohne eigene Auswahl bekommen sie automatisch von Wikimedia Commons (bisher für ${autoPhotoCount()} Arten gemerkt).`),
+      h('button', { class: 'btn ghost small', type: 'button', onclick: e => {
+        clearAutoPhotos(); e.currentTarget.textContent = 'Wird beim nächsten Üben neu gesucht';
+      } }, 'Automatische Fotos neu suchen')),
     h('section', { class: 'panel' },
       h('h2', {}, 'Fortschritt'),
       h('p', { class: 'muted small' }, 'Deine Ergebnisse bleiben im Browser dieses Geräts gespeichert.'),

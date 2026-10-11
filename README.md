@@ -49,8 +49,9 @@ Lern-App fürs Handy: Artenkenntnis (Foto + Ton), äußere Topografie (antippbar
 | `src/data/brutzeit.js` | Brutzeitcodes und 45 Feldszenarien |
 | `src/data/topo-examples.js` | echte Arten als Beispiel je Topografie-Begriff |
 | `src/data/species-builtin.js` | BANU-Artenliste Bronze (75 Arten) mit wiss. Namen, Familie, Ordnung, Lebensraum |
-| `src/lib/media.js` | Fotos (Wikipedia), Töne (audio.json → Commons), Sperr-/Merkliste |
-| `scripts/` | Import der xlsx, Abruf der xeno-canto-Aufnahmen |
+| `src/lib/media.js` | Fotos (wechselnd, siehe unten), Töne (audio.json → Commons), Sperr-/Merkliste |
+| `src/lib/photo-search.js` | Fotosuche über Wikidata/Commons – gemeinsam für App und `fetch-photos` |
+| `scripts/` | Import der xlsx, Abruf der xeno-canto-Aufnahmen, Abruf der Fotos (`fetch-photos`) |
 
 ## Tonauswahl im Detail
 
@@ -58,6 +59,27 @@ Lern-App fürs Handy: Artenkenntnis (Foto + Ton), äußere Topografie (antippbar
 2. Nur wenn dort < 3 Aufnahmen: Wikimedia Commons in drei Stufen – wissenschaftlicher Name im Dateinamen, dann Volltextsuche, dann deutscher Name im Dateinamen. Gewertet wird immer nur, was den Namen wirklich im Dateinamen trägt.
 3. Abgespielt wird bevorzugt die mp3-Umwandlung von Commons (Safari auf dem iPhone spielt kein Ogg Vorbis), die Originaldatei liegt als zweite Quelle dahinter.
 3. In der App nach dem Auflösen: **„Passt nicht“** sperrt eine Aufnahme dauerhaft, **„Als Standard merken“** setzt sie nach vorn. Zurücksetzen pro Art im Modus *Artenliste*.
+
+## Wechselnde Fotos im Artentrainer
+
+Bei Fotofragen zeigt die App pro Art bis zu 5 verschiedene Bilder, reihum – erst wenn alle dran waren, geht es von vorn los (neu gemischt, ohne direkte Wiederholung).
+
+Woher die Bilder kommen, in dieser Reihenfolge:
+1. eigene Auswahl im Bild-Kurator (dieses Gerät)
+2. `src/data/photos.json` im Repo
+3. automatisch von Wikimedia Commons – beim ersten Mal gesucht, dann 60 Tage gemerkt
+4. Notlösung: Wikipedia-Artikelbild
+
+**Empfohlen: die Bilder einmal fest ins Repo holen**, dann haben alle Geräte sofort dieselben Fotos und die App muss nichts mehr suchen:
+
+```bash
+npm run fetch-photos                    # 5 Fotos je Art, nur Arten ohne Bilder
+npm run fetch-photos -- --force         # alle neu
+npm run fetch-photos -- "Turdus merula" # nur eine Art neu
+git add src/data/photos.json && git commit -m "Fotos" && git push
+```
+
+Gesucht wird über Wikidata („zeigt Art X“), bevorzugt Featured- und Quality-Bilder. Aussortiert werden Eier, Nester, Küken, Präparate, Zeichnungen, Karten. Nach Möglichkeit sind Männchen und Weibchen dabei und höchstens 2 Bilder vom selben Fotografen. Urheber und Lizenz erscheinen nach dem Auflösen unter dem Foto. Einzelne unpassende Bilder lassen sich im Bild-Kurator ersetzen.
 
 ## Bilder selbst auswählen
 
