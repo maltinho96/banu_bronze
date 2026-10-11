@@ -394,11 +394,13 @@ export function setAudioSources(player, rec) {
   player.load();
 }
 
+const SPOKEN = /^LL-Q\d+|^(de|en|nl|fr|it|es|pt|pl|cs|sk|sl|hr|sr|hu|ro|bg|ru|uk|el|tr|sv|da|nb|nn|no|fi|et|lv|lt|is|ga|cy|eu|ca|gl|la|lb|fy|nds|bar|als)(-[a-z]{2,4})?-|pronunciation|aussprache|prononciation|pronuncia|uitspraak|wymowa|spoken|gesprochen/i;
+
 async function commonsSearch(search, limit = 30) {
   const url = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
     `&generator=search&gsrnamespace=6&gsrlimit=${limit}` +
     '&gsrsearch=' + encodeURIComponent(search) +
-    '&prop=imageinfo&iiprop=url%7Cmime';
+    '&prop=imageinfo&iiprop=url%7Cmime%7Csize';
   const r = await fetch(url);
   if (!r.ok) throw new Error(`Commons HTTP ${r.status}`);
   const j = await r.json();
@@ -411,6 +413,11 @@ function toRecord(page, sp, wanted) {
   const title = (page.title || '').replace(/^File:|^Datei:/, '');
   const t = norm(title);
   if (!wanted.some(w => w && t.includes(w))) return null; // Name muss im Dateinamen stehen
+  // Aussprache-Dateien („Sumpfmeise“ gesprochen) aussortieren:
+  // Lingua Libre (LL-Q188 (deu)-…), Sprachpräfix (De-…, En-us-…), „pronunciation“ usw.
+  if (SPOKEN.test(title)) return null;
+  // Zu kurz für Vogelstimmen – meist nur ein gesprochenes Wort
+  if (ii.duration && ii.duration < 5) return null;
   const low = title.toLowerCase();
   let score = 0;
   if (WORDS.song.test(low)) score += sp.snd === 'song' ? 4 : 1;
