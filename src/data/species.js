@@ -1,6 +1,6 @@
 /* Artenliste laden: 1) im Browser importierte xlsx (localStorage)
  *                   2) src/data/species.json (per npm run import-list erzeugt)
- *                   3) eingebaute Übungsliste */
+ *                   3) eingebaute BANU-Artenliste Bronze (75 Arten) */
 import { BUILTIN, guessSound } from './species-builtin.js';
 import { load } from '../lib/store.js';
 
@@ -18,5 +18,5 @@ export function getSpeciesList() {
   const uploaded = load('uploadedList', null);
   if (uploaded?.species?.length) return { name: `importiert (${uploaded.species.length} Arten)`, species: normalize(uploaded.species), source: 'upload' };
   if (REPO_LIST?.species?.length) return { name: REPO_LIST.name || `offiziell (${REPO_LIST.species.length} Arten)`, species: normalize(REPO_LIST.species), source: 'repo' };
-  return { name: `Übungsliste (${BUILTIN.length} Arten, inoffiziell)`, species: BUILTIN, source: 'builtin' };
+  return { name: `BANU-Artenliste Bronze (${BUILTIN.length} Arten)`, species: BUILTIN, source: 'builtin' };
 }

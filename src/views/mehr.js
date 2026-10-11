@@ -24,11 +24,11 @@ export function mount(root) {
     h('section', { class: 'panel' },
       h('h2', {}, 'Artenliste'),
       h('p', {}, 'Aktiv: ', h('b', {}, list.name)),
-      list.source === 'builtin' ? h('p', { class: 'warn' }, 'Das ist eine inoffizielle Übungsliste. Für die prüfungsrelevanten 75 Arten die offizielle BANU-Artenliste importieren.') : '',
+      list.source === 'builtin' ? h('p', { class: 'muted small' }, 'Eingebaut sind die 75 Arten der BANU-Artenliste Bronze. Lebensräume und wissenschaftliche Namen sind ergänzt; eine eigene xlsx-Liste kann sie hier ersetzen.') : '',
       h('p', { class: 'muted small' }, 'Offizielle Liste: ', h('a', { href: 'https://banu-akademien.de/download-feldornithologie/', target: '_blank', rel: 'noopener' }, 'banu-akademien.de → Download Feldornithologie'),
         '. Am besten einmal im Repo mit „npm run import-list“ umwandeln – dann ist sie auf allen Geräten dabei. Alternativ hier direkt auf diesem Gerät laden:'),
       file, msg,
-      h('button', { class: 'btn ghost small', type: 'button', onclick: () => { remove('uploadedList'); msg.textContent = 'Import entfernt – Liste aus dem Repo bzw. Übungsliste aktiv.'; } }, 'Import entfernen')),
+      h('button', { class: 'btn ghost small', type: 'button', onclick: () => { remove('uploadedList'); msg.textContent = 'Import entfernt – eingebaute BANU-Artenliste aktiv.'; } }, 'Import entfernen')),
     h('section', { class: 'panel' },
       h('h2', {}, 'Tonaufnahmen'),
       h('p', {}, hasCuratedAudio()

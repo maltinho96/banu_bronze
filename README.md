@@ -48,7 +48,7 @@ Lern-App fürs Handy: Artenkenntnis (Foto + Ton), äußere Topografie (antippbar
 | `src/data/questions-bronze.js` | 105 Fragen nur für Bronze: Topografie, Familien und Artengruppen, Lebensräume, Recht, Brutzeitcodes |
 | `src/data/brutzeit.js` | Brutzeitcodes und 45 Feldszenarien |
 | `src/data/topo-examples.js` | echte Arten als Beispiel je Topografie-Begriff |
-| `src/data/species-builtin.js` | inoffizielle Übungsliste (Fallback) |
+| `src/data/species-builtin.js` | BANU-Artenliste Bronze (75 Arten) mit wiss. Namen, Familie, Ordnung, Lebensraum |
 | `src/lib/media.js` | Fotos (Wikipedia), Töne (audio.json → Commons), Sperr-/Merkliste |
 | `scripts/` | Import der xlsx, Abruf der xeno-canto-Aufnahmen |
 

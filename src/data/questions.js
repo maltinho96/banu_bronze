@@ -112,11 +112,11 @@ const BASE = [
 
   // 3. Lebensraum
   { id: 'leb-drossel', lv: 'bsg', cat: 'leb', type: 'open', q: 'Nennen Sie zwei Drosselarten, die Sie zur Brutzeit in Wäldern erwarten würden.',
-    a: 'Singdrossel, Misteldrossel, Amsel (im Bergwald auch Ringdrossel).' },
+    a: 'Singdrossel und Amsel. An Waldrändern und in Feldgehölzen auch die Wacholderdrossel.' },
   { id: 'leb-siedlung-agrar', lv: 'bsg', cat: 'leb', type: 'open', q: 'Nennen Sie je zwei Arten, die vorwiegend in Siedlungen bzw. im Agrarland brüten.',
-    a: 'Siedlung: z. B. Haussperling, Mehlschwalbe, Mauersegler, Hausrotschwanz, Türkentaube. Agrarland: z. B. Feldlerche, Goldammer, Kiebitz, Wiesenschafstelze, Rebhuhn.' },
+    a: 'Siedlung: z. B. Haussperling, Mehlschwalbe, Mauersegler, Hausrotschwanz, Türkentaube, Straßentaube. Agrarland: z. B. Feldlerche, Goldammer, Kiebitz, Rebhuhn, Dorngrasmücke.' },
   { id: 'leb-typisch', lv: 'bsg', cat: 'leb', type: 'open', q: 'Nennen Sie je eine typische Art für: Binnengewässer & Feuchtgebiete, Wälder & Heiden, Agrarlandschaft, Siedlungen.',
-    a: 'z. B. Haubentaucher / Teichrohrsänger – Buntspecht / Heidelerche – Feldlerche / Goldammer – Haussperling / Mehlschwalbe.' },
+    a: 'z. B. Haubentaucher / Teichrohrsänger – Buntspecht / Kleiber – Feldlerche / Goldammer – Haussperling / Mehlschwalbe.' },
   { id: 'leb-sandregenpfeifer', lv: 'g', cat: 'leb', type: 'single', q: 'Brüten Sandregenpfeifer im Binnenland?',
     opts: ['Ja, aber nur vereinzelt – Schwerpunkt ist die Küste', 'Nein, nie', 'Ja, überwiegend im Binnenland', 'Nur in den Alpen'], ok: [0],
     a: 'Brutschwerpunkt ist die Küste; im Binnenland nur sehr lokal (z. B. Sand- und Kiesflächen). Typischer Binnenland-Regenpfeifer ist der Flussregenpfeifer. (Bitte mit aktueller Literatur/ADEBAR abgleichen.)' },
