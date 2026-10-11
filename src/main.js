@@ -10,6 +10,7 @@ import * as fragen from './views/fragen.js';
 import * as mehr from './views/mehr.js';
 import * as bilder from './views/bilder.js';
 import * as systematik from './views/systematik.js';
+import * as verwechsler from './views/verwechsler.js';
 
 const ROUTES = {
   arten: { label: 'Arten', view: arten, icon: 'M3 14c3 0 5-2 6-5l2-3 3 1 3-2-1 3c0 6-4 9-9 9-3 0-4-1-4-3Zm11-5h0M9 19l-1 3M12 19l1 3' },
@@ -23,6 +24,7 @@ const ROUTES = {
 const SUBROUTES = {
   bilder: { view: bilder, tab: 'mehr' },
   systematik: { view: systematik, tab: 'arten' },
+  verwechsler: { view: verwechsler, tab: 'arten' },
 };
 
 // Nur Bronze – Stufe ist fest eingestellt

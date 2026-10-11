@@ -317,7 +317,7 @@ details.cur { border: 1px solid var(--line); border-radius: var(--r); background
 .msg.small { font-size: .82rem; flex-basis: 100%; }
 
 /* ---------- Systematik ---------- */
-.syslink { display: inline-block; margin-top: 4px; font-size: .92rem; font-weight: 700; color: var(--accent); }
+.syslink { display: block; margin-top: 4px; font-size: .92rem; font-weight: 700; color: var(--accent); }
 .sys-tip { margin: 10px 0 0; }
 .sys-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
 details.sys-ord { border: 1px solid var(--line); border-radius: var(--r); margin-bottom: 8px; background: var(--paper); }
@@ -422,3 +422,28 @@ details.sys-fam .sys-note { margin-left: 30px; }
 .sys-nametoggle { margin: 4px 2px 0; color: var(--ink-2); }
 
 .photo-credit { margin: 4px 0 0; overflow-wrap: anywhere; }
+
+/* ---------- Verwechsler ---------- */
+.vw-nav { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; }
+.vw-nav select { flex: 1; min-width: 0; }
+.vw-title { font-size: 1.1rem; margin: 6px 0 10px; }
+.vw-grid { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.vw-grid.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.vw-col { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--paper); display: flex; flex-direction: column; }
+.vw-col.is-shown { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.vw-img { all: unset; cursor: pointer; display: block; aspect-ratio: 1 / 1; background: var(--field); position: relative; }
+.vw-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vw-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-size: .8rem; text-align: center; padding: 6px; }
+.vw-col h3 { font-size: .95rem; margin: 8px 8px 2px; overflow-wrap: anywhere; hyphens: auto; }
+.vw-marks { margin: 0 0 8px; padding: 0 8px 0 22px; font-size: .84rem; line-height: 1.35; }
+.vw-marks li { margin: 3px 0; }
+.vw-grid.n3 .vw-marks { font-size: .78rem; padding-left: 18px; }
+.vw-tip { margin: 10px 0; padding: 8px 10px; background: var(--field); border-radius: 8px; font-size: .9rem; }
+.vw-q { font-weight: 700; margin: 0 0 10px; }
+.vw-quizimg { border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
+.vw-quizimg img { object-fit: contain; }
+.vw-after { margin-top: 12px; }
+.vw-after .vw-grid { margin-top: 8px; }
+.vw-grid.n3 .vw-col h3 { font-size: .8rem; margin: 6px 6px 2px; }
+.vw-grid.n3 .vw-marks { padding: 0 6px 0 16px; }
+@media (min-width: 560px) { .vw-grid.n3 .vw-col h3 { font-size: .95rem; } .vw-grid.n3 .vw-marks { font-size: .84rem; } }
