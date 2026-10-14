@@ -57,7 +57,7 @@ export const LAWS = [
 
 /* „Was regelt …?“-Fragen */
 export const RECHT = LAWS.map(l => ({
-  id: `recht-${l.k}`, lv: 'b', cat: 'sach', type: 'single', q: l.q,
+  id: `recht-${l.k}`, lv: 'bs', cat: 'sach', type: 'single', q: l.q,
   opts: [l.ok, ...l.wrong], ok: [0], a: l.a,
 }));
 

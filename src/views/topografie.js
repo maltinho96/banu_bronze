@@ -63,7 +63,9 @@ export function mount(root, ctx) {
   function showDiagram(d) { stage.innerHTML = renderDiagram(d, lvl); stage.hidden = false; }
 
   function draw() {
-    hint.textContent = 'Nur die Begriffe für Bronze sind antippbar.';
+    hint.textContent = lvl === 'b'
+      ? 'Stufe Bronze: nur die Bronze-Begriffe sind antippbar.'
+      : 'Stufe Silber: alle Begriffe inklusive Deckfedern, Kopfstreifen und Flügelzeichnung.';
     tabs.hidden = st.mode === 'foto';
     photo.hidden = true; termList.hidden = true; stage.hidden = false;
     prompt.innerHTML = ''; choices.innerHTML = '';

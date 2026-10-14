@@ -12,6 +12,8 @@ const DEFAULT_CFG = { mode: 'pruefung', type: 'gemischt', hab: 'alle', answer: '
 export function mount(root) {
   const list = getSpeciesList();
   const SPECIES = list.species;
+  const SILBER = list.level === 's';
+  const EXAM_N = SILBER ? 60 : 30;
   const cfg = { ...DEFAULT_CFG, ...load('artenCfg', {}) };
   let deck = [], idx = -1, right = 0, answered = 0, wrongs = [];
   let audio = [], audioPtr = 0, token = 0, verdict = false;
@@ -31,8 +33,10 @@ export function mount(root) {
     return el;
   };
   const habSelect = h('select', { 'aria-label': 'Lebensraum', onchange: e => { cfg.hab = e.target.value; save('artenCfg', cfg); } },
-    h('option', { value: 'alle' }, 'Alle Lebensräume'),
+    h('option', { value: 'alle' }, SILBER ? 'Alle 150 Arten' : 'Alle Lebensräume'),
+    SILBER ? h('option', { value: 'neu' }, 'Nur neue Silber-Arten (75)') : null,
     ...Object.entries(HAB_LABEL).map(([k, v]) => h('option', { value: k }, v)));
+  if (cfg.hab === 'neu' && !SILBER) cfg.hab = 'alle';
   habSelect.value = cfg.hab;
   const weakBox = h('input', { type: 'checkbox', id: 'weak', onchange: e => { cfg.weak = e.target.checked; save('artenCfg', cfg); } });
   weakBox.checked = cfg.weak;
@@ -43,7 +47,7 @@ export function mount(root) {
   const controls = h('section', { class: 'panel controls' },
     h('p', { class: 'listname' }, `Liste: ${list.name}`),
     h('div', { class: 'ctrl' }, h('span', { class: 'lbl' }, 'Modus'),
-      seg('mode', [['pruefung', 'Prüfung (30)'], ['frei', 'Üben'], ['liste', 'Artenliste']]),
+      seg('mode', [['pruefung', `Prüfung (${EXAM_N})`], ['frei', 'Üben'], ['liste', 'Artenliste']]),
       h('a', { class: 'syslink', href: '#/systematik' }, 'Systematik lernen: Ordnungen, Familien, Arten'),
       h('a', { class: 'syslink', href: '#/verwechsler' }, 'Verwechsler: ähnliche Arten nebeneinander')),
     h('div', { class: 'ctrl only-quiz' }, h('span', { class: 'lbl' }, 'Fragetyp'),
@@ -128,6 +132,7 @@ export function mount(root) {
 
   /* ---------- Ablauf ---------- */
   function pool() {
+    if (cfg.hab === 'neu') return SPECIES.filter(s => s.lv === 's');
     return cfg.hab === 'alle' ? SPECIES.slice() : SPECIES.filter(s => s.hab?.includes(cfg.hab));
   }
   function modeFor() {
@@ -138,7 +143,7 @@ export function mount(root) {
   function buildDeck() {
     const p = pool();
     if (cfg.mode === 'pruefung') {
-      const n = Math.min(30, p.length);
+      const n = Math.min(EXAM_N, p.length);
       deck = shuffle(p).slice(0, n).map(sp => ({ sp, mode: modeFor() }));
       if (cfg.type === 'gemischt') { deck.forEach((d, i) => { d.mode = i < n / 2 ? 'optisch' : 'akustisch'; }); shuffle(deck); }
     } else {
@@ -208,7 +213,7 @@ export function mount(root) {
       badge.textContent = 'Ton';
       const hk = sp.hab?.[0];
       fcHab.textContent = habMain(sp) || '—';
-      fcHabAll.textContent = sp.hab?.length ? `(${habAll(sp)})` : '';
+      fcHabAll.textContent = sp.hl && sp.hab?.length ? `(${habAll(sp)})` : '';
       habLine.hidden = false;
       audioZone.hidden = false;
       setMedia(null, 'Lade Lebensraumfoto …', 'cover');
@@ -360,7 +365,9 @@ export function mount(root) {
     endScreen.append(
       h('p', { class: 'big' }, `${right} / ${deck.length}`),
       h('p', { class: `verdict ${pct >= 80 ? 'ok' : 'no'}` }, verdictText),
-      h('p', { class: 'muted' }, 'Nur Teil A (Artenkenntnis). Die echte Prüfung enthält zusätzlich Wissensfragen.'),
+      h('p', { class: 'muted' }, SILBER
+        ? 'Nur Teil A (Artenkenntnis, 60 Arten). Die echte Silber-Prüfung findet teils im Gelände statt und enthält zusätzlich Wissensfragen (Teil B).'
+        : 'Nur Teil A (Artenkenntnis). Die echte Prüfung enthält zusätzlich Wissensfragen.'),
     );
     if (wrongs.length) {
       endScreen.append(h('h3', {}, 'Nochmal anschauen'),

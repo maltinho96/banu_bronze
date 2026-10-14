@@ -33,7 +33,7 @@ export const RL_SPECIES = {
   0: ['Rothuhn', 'Zwergtrappe', 'Mornellregenpfeifer', 'Steinwälzer', 'Doppelschnepfe', 'Rosenseeschwalbe', 'Papageitaucher',
     'Waldrapp', 'Gänsegeier', 'Schlangenadler', 'Blauracke', 'Würgfalke', 'Schwarzstirnwürger', 'Steinsperling'],
   1: ['Auerhuhn', 'Knäkente', 'Moorente', 'Großtrappe', 'Wachtelkönig', 'Triel', 'Goldregenpfeifer', 'Sandregenpfeifer',
-    'Seeregenpfeifer', 'Großer Brachvogel', 'Uferschnepfe', 'Kampfläufer', 'Alpenstrandläufer', 'Bekassine', 'Bruchwasserläufer',
+    'Seeregenpfeifer', 'Brachvogel', 'Uferschnepfe', 'Kampfläufer', 'Alpenstrandläufer', 'Bekassine', 'Bruchwasserläufer',
     'Lachseeschwalbe', 'Raubseeschwalbe', 'Brandseeschwalbe', 'Zwergseeschwalbe', 'Küstenseeschwalbe', 'Schreiadler', 'Kornweihe',
     'Sumpfohreule', 'Raubwürger', 'Rotkopfwürger', 'Beutelmeise', 'Haubenlerche', 'Seggenrohrsänger', 'Sperbergrasmücke',
     'Steinrötel', 'Steinschmätzer', 'Brachpieper', 'Zippammer'],
@@ -47,11 +47,16 @@ export const RL_SPECIES = {
   V: ['Wachtel', 'Tafelente', 'Wasserralle', 'Teichhuhn', 'Säbelschnäbler', 'Flussregenpfeifer', 'Waldschnepfe', 'Silbermöwe',
     'Weißstorch', 'Wespenbussard', 'Steinkauz', 'Pirol', 'Heidelerche', 'Rauchschwalbe', 'Grauschnäpper', 'Sprosser',
     'Zwergschnäpper', 'Feldsperling', 'Baumpieper', 'Karmingimpel', 'Grauammer'],
-  // Ungefährdete Arten aus der Bronze-Liste (nur sicher eingestufte)
+  // Ungefährdete Arten der Bronze- und Silber-Liste (nur sicher eingestufte)
   '*': ['Amsel', 'Blaumeise', 'Kohlmeise', 'Buchfink', 'Rotkehlchen', 'Zilpzalp', 'Mönchsgrasmücke', 'Zaunkönig', 'Buntspecht',
     'Ringeltaube', 'Elster', 'Eichelhäher', 'Rabenkrähe', 'Kleiber', 'Mäusebussard', 'Rotmilan', 'Turmfalke', 'Graureiher',
     'Höckerschwan', 'Stockente', 'Blässhuhn', 'Haubentaucher', 'Graugans', 'Kormoran', 'Grünspecht', 'Waldkauz',
-    'Eisvogel', 'Singdrossel', 'Heckenbraunelle', 'Tannenmeise', 'Schwanzmeise', 'Gimpel', 'Stieglitz'],
+    'Eisvogel', 'Singdrossel', 'Heckenbraunelle', 'Tannenmeise', 'Schwanzmeise', 'Gimpel', 'Stieglitz',
+    // Silber
+    'Austernfischer', 'Dohle', 'Erlenzeisig', 'Fichtenkreuzschnabel', 'Fitis', 'Gartengrasmücke', 'Gartenrotschwanz',
+    'Girlitz', 'Habicht', 'Hohltaube', 'Klappergrasmücke', 'Kolkrabe', 'Kranich', 'Misteldrossel', 'Mittelspecht',
+    'Schwarzspecht', 'Seeadler', 'Sommergoldhähnchen', 'Uhu', 'Wanderfalke', 'Waldbaumläufer', 'Waldohreule',
+    'Wasseramsel', 'Sumpfrohrsänger', 'Rohrammer', 'Rohrweihe', 'Schellente', 'Sturmmöwe'],
 };
 
 /** Kategorie einer Art (oder undefined) */

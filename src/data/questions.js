@@ -7,6 +7,7 @@ import { HAB_LABEL } from './species-builtin.js';
 import { CODES } from './brutzeit.js';
 import { RL_CATS, RL_SPECIES } from './rote-liste.js';
 import { RECHT, LAWS, LAW_BINS } from './questions-recht.js';
+import { SILBER_Q } from './questions-silber.js';
 import { EXTRA } from './questions-extra.js';
 import { BRONZE } from './questions-bronze.js';
 import { shuffle, pick } from '../lib/util.js';
@@ -63,7 +64,7 @@ const BASE = [
 
 ];
 
-export const STATIC = [...BASE, ...EXTRA, ...BRONZE, ...RECHT];
+export const STATIC = [...BASE, ...EXTRA, ...BRONZE, ...RECHT, ...SILBER_Q];
 
 /* ---------- Generierte Fragen ---------- */
 function mc(id, lv, cat, q, correct, distractors, a) {
@@ -100,7 +101,7 @@ export const nameHasGroup = (name, group) => !!group && stems(group).some(st => 
 
 /* Zuordnungsaufgabe: Elemente in Fächer sortieren */
 function sortQ(id, cat, q, bins, items, a) {
-  return { id, lv: 'b', cat, type: 'sort', q, bins, items: shuffle(items.slice()), a, generated: true };
+  return { id, lv: 'bs', cat, type: 'sort', q, bins, items: shuffle(items.slice()), a, generated: true };
 }
 
 export function generateQuestions(species) {
@@ -113,7 +114,7 @@ export function generateQuestions(species) {
   // ---- Rote Liste: Kategorie erklären + Art auswählen ----
   RL_CATS.forEach(c => {
     const wrong = shuffle(RL_CATS.filter(r => r.k !== c.k).map(r => r.t)).slice(0, 3);
-    out.push(mc(`rl-${c.k}`, 'b', 'sach', `Was bedeutet die Kategorie „${c.k}“ in der Roten Liste?`, c.t, wrong, `${c.k} = ${c.t}: ${c.x}`));
+    out.push(mc(`rl-${c.k}`, 'bs', 'sach', `Was bedeutet die Kategorie „${c.k}“ in der Roten Liste?`, c.t, wrong, `${c.k} = ${c.t}: ${c.x}`));
   });
   const rlKeys = Object.keys(RL_SPECIES);
   rlKeys.forEach(k => {
@@ -125,7 +126,7 @@ export function generateQuestions(species) {
       const right = pick(n < 2 && bronze.length ? bronze : list);
       const others = shuffle(rlKeys.filter(x => x !== k)).slice(0, 3).map(x => pick(RL_SPECIES[x]));
       const where = others.map((d, i2) => `${d}: ${rlKeysOf(d)}`).join(', ');
-      out.push(mc(`rlart-${k}-${n}`, 'b', 'sach',
+      out.push(mc(`rlart-${k}-${n}`, 'bs', 'sach',
         `Kategorie ${k} der Roten Liste heißt „${c.t}“. Welche dieser Arten steht in dieser Kategorie?`,
         right, others,
         `${right} steht in Kategorie ${k} (${c.t}). ${c.x} Die anderen: ${where}.`));
@@ -167,30 +168,31 @@ export function generateQuestions(species) {
     // Familie – nicht, wenn der Familienname im Artnamen steckt
     if (sp.fam && fams.length >= 4 && !nameHasGroup(sp.de, sp.fam)) {
       const wrong = shuffle(fams.filter(f => f !== sp.fam)).slice(0, 3);
-      out.push(tag(mc(`fam-${sp.sci}`, 'b', 'sys', `Zu welcher Familie gehört: ${sp.de}?`, sp.fam, wrong,
+      out.push(tag(mc(`fam-${sp.sci}`, 'bs', 'sys', `Zu welcher Familie gehört: ${sp.de}?`, sp.fam, wrong,
         `${sp.de} (${sp.sci}) gehört zur Familie ${sp.fam}${sp.ord ? ', Ordnung ' + sp.ord : ''}.`), sp.ord));
     }
     // Ordnung (nur Nicht-Sperlingsvögel, und nicht, wenn der Name schon verrät)
     if (sp.ord && sp.ord !== 'Sperlingsvögel' && ords.length >= 4 && !nameHasGroup(sp.de, sp.ord)) {
       const wrong = shuffle(ords.filter(o => o !== sp.ord)).slice(0, 3);
-      out.push(tag(mc(`ord-${sp.sci}`, 'b', 'sys', `Zu welcher Ordnung gehört: ${sp.de}?`, sp.ord, wrong,
+      out.push(tag(mc(`ord-${sp.sci}`, 'bs', 'sys', `Zu welcher Ordnung gehört: ${sp.de}?`, sp.ord, wrong,
         `${sp.de}: Ordnung ${sp.ord}, Familie ${sp.fam}.`), sp.ord));
     }
     // Lebensraum der Art – nicht bei „mehrere Lebensräume (indifferent)“
-    if (sp.hab?.length && !/^mehrere Lebensräume \(indifferent\)/.test(sp.hl || '')) {
+    const clearMain = sp.hl ? !/^mehrere Lebensräume \(indifferent\)/.test(sp.hl) : sp.hab?.length === 1;
+    if (sp.hab?.length && clearMain) {
       const wrong = shuffle(habs.filter(h => !sp.hab.includes(h))).slice(0, 3).map(h => HAB_LABEL[h]);
-      out.push(tag(mc(`hab-${sp.sci}`, 'b', 'leb', `In welchem Lebensraum brütet ${sp.de} hauptsächlich?`, HAB_LABEL[sp.hab[0]], wrong,
+      out.push(tag(mc(`hab-${sp.sci}`, 'bs', 'leb', `In welchem Lebensraum brütet ${sp.de} hauptsächlich?`, HAB_LABEL[sp.hab[0]], wrong,
         `${sp.de}: ${sp.hl ? sp.hl + ' – ' : ''}${sp.hab.map(h => HAB_LABEL[h]).join(', ')} (laut BANU-Tabelle).`), sp.ord));
     }
   });
 
   // Welche Art erwarten Sie im Lebensraum X?
   habs.forEach(hk => {
-    const inH = species.filter(s => s.hab?.[0] === hk);
+    const inH = species.filter(s => s.hab?.[0] === hk && (s.hl || s.hab.length === 1));
     const notH = species.filter(s => !s.hab?.includes(hk));
     if (inH.length < 1 || notH.length < 3) return;
     const c = pick(inH);
-    out.push(mc(`habmem-${hk}`, 'b', 'leb', `Welche Art erwarten Sie zur Brutzeit typischerweise im Lebensraum „${HAB_LABEL[hk]}“?`, c.de,
+    out.push(mc(`habmem-${hk}`, 'bs', 'leb', `Welche Art erwarten Sie zur Brutzeit typischerweise im Lebensraum „${HAB_LABEL[hk]}“?`, c.de,
       shuffle(notH).slice(0, 3).map(s => s.de),
       `Typisch für ${HAB_LABEL[hk]} (Hauptlebensraum laut BANU-Tabelle): ${inH.map(s => s.de).join(', ')}.`));
   });

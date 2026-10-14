@@ -12,7 +12,11 @@ export function mount(root, ctx) {
 
   const pool = () => {
     const all = [...STATIC, ...generateQuestions(getSpeciesList().species)];
-    return all.filter(q => q.lv.includes(level) && cfg.cats.includes(q.cat));
+    // Silber umfasst auch das Bronze-Wissen – außer Fragen, die sich ausdrücklich auf die Bronze-Liste beziehen
+    const fits = q => (level === 's'
+      ? q.lv.includes('s') || (q.lv.includes('b') && !/Bronze/.test(q.q))
+      : q.lv.includes('b'));
+    return all.filter(q => fits(q) && cfg.cats.includes(q.cat));
   };
 
   /* ---------- Steuerung ---------- */

@@ -28,7 +28,7 @@ export function mount(root) {
   const body = h('div');
   root.append(
     h('section', { class: 'panel' },
-      h('p', { class: 'muted small' }, `${groups.length} Gruppen ähnlicher Arten aus der Bronze-Liste – nebeneinander mit den Merkmalen, an denen man sie trennt.`),
+      h('p', { class: 'muted small' }, `${groups.length} Gruppen ähnlicher Arten aus der ${getSpeciesList().level === 's' ? 'Silber' : 'Bronze'}-Liste – nebeneinander mit den Merkmalen, an denen man sie trennt.`),
       modes,
       h('a', { class: 'syslink', href: '#/arten' }, '← zurück zum Artentrainer')),
     body);

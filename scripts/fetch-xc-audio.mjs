@@ -15,7 +15,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { BUILTIN } from '../src/data/species-builtin.js';
+import { ALL_SPECIES } from '../src/data/species-builtin.js';
 
 const KEY = process.env.XC_KEY;
 if (!KEY) {
@@ -25,7 +25,7 @@ if (!KEY) {
 const PER_SPECIES = 4;
 const only = process.argv[2]; // optional: nur eine Art, z. B. "Parus major"
 
-const species = BUILTIN;
+const species = ALL_SPECIES; // Bronze + Silber
 const outFile = path.resolve('src/data/audio.json');
 const out = fs.existsSync(outFile) ? JSON.parse(fs.readFileSync(outFile, 'utf8')) : {};
 

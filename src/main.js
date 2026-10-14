@@ -2,7 +2,7 @@ import '@fontsource/atkinson-hyperlegible/400.css';
 import '@fontsource/atkinson-hyperlegible/700.css';
 import './style.css';
 import { h, $ } from './lib/util.js';
-import { remove } from './lib/store.js';
+import { load, save, remove } from './lib/store.js';
 import * as arten from './views/arten.js';
 import * as topografie from './views/topografie.js';
 import * as brutzeit from './views/brutzeit.js';
@@ -27,17 +27,33 @@ const SUBROUTES = {
   verwechsler: { view: verwechsler, tab: 'arten' },
 };
 
-// Nur Bronze – Stufe ist fest eingestellt
-export const ctx = { level: 'b' };
-// Reste früherer Versionen (Stufenwahl, Listen-Import, Ton-Auswahl) aufräumen
-['level', 'uploadedList', 'audioBan', 'audioPin'].forEach(k => remove(k));
+// Stufe: Bronze (75 Arten) oder Silber (150 Arten)
+const LEVELS = [['b', 'Bronze'], ['s', 'Silber']];
+export const ctx = {
+  get level() { return load('level', 'b') === 's' ? 's' : 'b'; },
+  set level(v) { save('level', v); },
+};
+// Reste früherer Versionen (Listen-Import, Ton-Auswahl) aufräumen
+['uploadedList', 'audioBan', 'audioPin'].forEach(k => remove(k));
+
+function levelSwitch() {
+  const wrap = h('div', { class: 'levels', role: 'radiogroup', 'aria-label': 'Prüfungsstufe' });
+  LEVELS.forEach(([k, label]) => {
+    const b = h('button', {
+      class: `lvl lvl-${k}`, role: 'radio', type: 'button', 'aria-checked': String(ctx.level === k),
+      onclick: () => { ctx.level = k; wrap.querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', String(x === b))); render(); },
+    }, h('span', { class: 'medal', 'aria-hidden': 'true' }), label);
+    wrap.append(b);
+  });
+  return wrap;
+}
 
 const app = $('#app');
 const main = h('main', { class: 'view', id: 'view' });
 
 const header = h('header', { class: 'top' },
   h('div', { class: 'brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }), 'Feldornithologie'),
-  h('div', { class: 'levels' }, h('span', { class: 'lvl lvl-b', 'aria-checked': 'true' }, h('span', { class: 'medal', 'aria-hidden': 'true' }), 'Bronze')),
+  levelSwitch(),
 );
 
 const nav = h('nav', { class: 'tabs', 'aria-label': 'Bereiche' },

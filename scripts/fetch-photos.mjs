@@ -13,7 +13,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { findSpeciesPhotos, withRetry } from '../src/lib/photo-search.js';
-import { BUILTIN } from '../src/data/species-builtin.js';
+import { ALL_SPECIES } from '../src/data/species-builtin.js';
 
 const args = process.argv.slice(2);
 const force = args.includes('--force');
@@ -21,7 +21,7 @@ const nIdx = args.indexOf('--n');
 const N = nIdx >= 0 ? Number(args[nIdx + 1]) || 5 : 5;
 const only = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--n'); // eine oder mehrere Arten
 
-const species = BUILTIN;
+const species = ALL_SPECIES; // Bronze + Silber
 const outFile = path.resolve('src/data/photos.json');
 const out = fs.existsSync(outFile) ? JSON.parse(fs.readFileSync(outFile, 'utf8')) : {};
 

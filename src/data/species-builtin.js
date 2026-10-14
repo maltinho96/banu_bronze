@@ -23,7 +23,7 @@ export const HAB_LABEL = {
 /** Kurzer Bruthabitat-Text für die Anzeige (aus hl, sonst Haupt-Lebensraum) */
 export function habMain(sp) {
   const t = sp.hl || '';
-  if (!t) return HAB_LABEL[sp.hab?.[0]] || '';
+  if (!t) return (sp.hab || []).map(k => HAB_LABEL[k] || k).join(' · ');
   if (/^mehrere Lebensräume \(indifferent\)/.test(t)) return 'mehrere Lebensräume (indifferent)';
   return t.replace(/^mehrere Lebensräume:\s*/, '');
 }
@@ -112,8 +112,95 @@ const RAW = [
   ['Zwergtaucher', 'Tachybaptus ruficollis', 'Lappentaucher', 'Lappentaucher', ['gewaesser', 'kueste'], 'Stillgewässer', [], 'call'],
 ];
 
-export const BUILTIN = RAW.map(([de, sci, fam, ord, hab, hl, syn = [], snd = 'song']) =>
-  ({ de, sci, fam, ord, hab, hl, syn, snd }));
+
+/* Zusätzliche Arten der Silber-Liste (150 Arten = Bronze + diese 75).
+ * Lebensraum-Kreuze nach der BANU-Tabelle; einen Hauptlebensraum-Text gibt es dort nicht. */
+const RAW_S = [
+  ['Austernfischer', 'Haematopus ostralegus', 'Austernfischer', 'Regenpfeiferartige', ['kueste', 'gewaesser'], '', [], 'call'],
+  ['Basstölpel', 'Morus bassanus', 'Tölpel', 'Ruderfüßer', ['kueste'], '', [], 'call'],
+  ['Baumfalke', 'Falco subbuteo', 'Falken', 'Falkenartige', ['wald', 'agrar'], '', [], 'call'],
+  ['Baumpieper', 'Anthus trivialis', 'Stelzen und Pieper', P, ['wald', 'agrar'], '', [], 'song'],
+  ['Bekassine', 'Gallinago gallinago', 'Schnepfenvögel', 'Regenpfeiferartige', ['kueste', 'gewaesser', 'agrar'], '', ['Himmelsziege'], 'call'],
+  ['Bergfink', 'Fringilla montifringilla', 'Finken', P, ['wald', 'siedlung'], '', [], 'call'],
+  ['Bienenfresser', 'Merops apiaster', 'Bienenfresser', 'Rackenvögel', ['gewaesser'], '', [], 'call'],
+  ['Bluthänfling', 'Linaria cannabina', 'Finken', P, ['kueste', 'agrar', 'siedlung'], '', ['Hänfling'], 'song'],
+  ['Braunkehlchen', 'Saxicola rubetra', 'Fliegenschnäpper', P, ['kueste', 'gewaesser', 'agrar'], '', [], 'song'],
+  ['Dohle', 'Coloeus monedula', 'Rabenvögel', P, ['wald', 'agrar', 'siedlung'], '', [], 'call'],
+  ['Eiderente', 'Somateria mollissima', 'Entenvögel', 'Gänsevögel', ['kueste'], '', [], 'call'],
+  ['Erlenzeisig', 'Spinus spinus', 'Finken', P, ['wald', 'siedlung'], '', ['Zeisig'], 'song'],
+  ['Jagdfasan', 'Phasianus colchicus', 'Fasanenartige', 'Hühnervögel', ['agrar'], '', ['Fasan'], 'call'],
+  ['Feldschwirl', 'Locustella naevia', 'Schwirle', P, ['gewaesser', 'agrar'], '', [], 'song'],
+  ['Fichtenkreuzschnabel', 'Loxia curvirostra', 'Finken', P, ['wald', 'alpin'], '', ['Kreuzschnabel'], 'call'],
+  ['Fischadler', 'Pandion haliaetus', 'Fischadler', 'Greifvögel', ['gewaesser', 'wald'], '', [], 'call'],
+  ['Fitis', 'Phylloscopus trochilus', 'Laubsänger', P, ['wald'], '', ['Fitislaubsänger'], 'song'],
+  ['Flussseeschwalbe', 'Sterna hirundo', 'Möwen', 'Regenpfeiferartige', ['kueste', 'gewaesser'], '', [], 'call'],
+  ['Gänsesäger', 'Mergus merganser', 'Entenvögel', 'Gänsevögel', ['kueste', 'gewaesser'], '', [], 'call'],
+  ['Gartengrasmücke', 'Sylvia borin', 'Grasmücken', P, ['wald', 'siedlung'], '', [], 'song'],
+  ['Gartenrotschwanz', 'Phoenicurus phoenicurus', 'Fliegenschnäpper', P, ['wald', 'siedlung'], '', [], 'song'],
+  ['Girlitz', 'Serinus serinus', 'Finken', P, ['agrar', 'siedlung'], '', [], 'song'],
+  ['Goldregenpfeifer', 'Pluvialis apricaria', 'Regenpfeifer', 'Regenpfeiferartige', ['kueste', 'agrar'], '', [], 'call'],
+  ['Grauspecht', 'Picus canus', 'Spechte', 'Spechtvögel', ['wald'], '', [], 'call'],
+  ['Brachvogel', 'Numenius arquata', 'Schnepfenvögel', 'Regenpfeiferartige', ['kueste', 'gewaesser', 'agrar'], '', ['Großer Brachvogel'], 'call'],
+  ['Grünschenkel', 'Tringa nebularia', 'Schnepfenvögel', 'Regenpfeiferartige', ['gewaesser'], '', [], 'call'],
+  ['Habicht', 'Accipiter gentilis', 'Habichtartige', 'Greifvögel', ['wald'], '', [], 'call'],
+  ['Halsbandsittich', 'Psittacula krameri', 'Altweltpapageien', 'Papageien', ['siedlung'], '', [], 'call'],
+  ['Heidelerche', 'Lullula arborea', 'Lerchen', P, ['wald', 'agrar'], '', [], 'song'],
+  ['Hohltaube', 'Columba oenas', 'Tauben', 'Taubenvögel', ['wald'], '', [], 'song'],
+  ['Kanadagans', 'Branta canadensis', 'Entenvögel', 'Gänsevögel', ['gewaesser'], '', [], 'call'],
+  ['Klappergrasmücke', 'Sylvia curruca', 'Grasmücken', P, ['wald', 'agrar', 'siedlung'], '', ['Zaungrasmücke'], 'song'],
+  ['Kleinspecht', 'Dryobates minor', 'Spechte', 'Spechtvögel', ['wald', 'siedlung'], '', [], 'call'],
+  ['Kolkrabe', 'Corvus corax', 'Rabenvögel', P, ['wald', 'alpin'], '', ['Rabe'], 'call'],
+  ['Kranich', 'Grus grus', 'Kraniche', 'Kranichvögel', ['gewaesser', 'wald', 'agrar'], '', [], 'call'],
+  ['Löffelente', 'Spatula clypeata', 'Entenvögel', 'Gänsevögel', ['kueste', 'gewaesser'], '', [], 'call'],
+  ['Löffler', 'Platalea leucorodia', 'Ibisse und Löffler', 'Pelikanvögel', ['kueste'], '', [], 'call'],
+  ['Mauerläufer', 'Tichodroma muraria', 'Mauerläufer', P, ['alpin'], '', [], 'song'],
+  ['Misteldrossel', 'Turdus viscivorus', 'Drosseln', P, ['wald', 'agrar', 'siedlung'], '', [], 'song'],
+  ['Mittelspecht', 'Dendrocoptes medius', 'Spechte', 'Spechtvögel', ['wald'], '', [], 'call'],
+  ['Pirol', 'Oriolus oriolus', 'Pirole', P, ['wald'], '', [], 'song'],
+  ['Raubwürger', 'Lanius excubitor', 'Würger', P, ['wald', 'agrar'], '', [], 'call'],
+  ['Ringdrossel', 'Turdus torquatus', 'Drosseln', P, ['wald', 'alpin'], '', [], 'song'],
+  ['Rohrammer', 'Emberiza schoeniclus', 'Ammern', P, ['kueste', 'gewaesser', 'agrar'], '', [], 'song'],
+  ['Rohrweihe', 'Circus aeruginosus', 'Habichtartige', 'Greifvögel', ['kueste', 'gewaesser', 'agrar'], '', [], 'call'],
+  ['Rotdrossel', 'Turdus iliacus', 'Drosseln', P, ['wald', 'agrar'], '', [], 'call'],
+  ['Rotschenkel', 'Tringa totanus', 'Schnepfenvögel', 'Regenpfeiferartige', ['kueste', 'gewaesser'], '', [], 'call'],
+  ['Schellente', 'Bucephala clangula', 'Entenvögel', 'Gänsevögel', ['gewaesser'], '', [], 'call'],
+  ['Schwarzspecht', 'Dryocopus martius', 'Spechte', 'Spechtvögel', ['wald'], '', [], 'call'],
+  ['Seeadler', 'Haliaeetus albicilla', 'Habichtartige', 'Greifvögel', ['kueste', 'gewaesser', 'wald'], '', [], 'call'],
+  ['Silbermöwe', 'Larus argentatus', 'Möwen', 'Regenpfeiferartige', ['kueste', 'gewaesser'], '', [], 'call'],
+  ['Silberreiher', 'Ardea alba', 'Reiher', 'Pelikanvögel', ['gewaesser'], '', [], 'call'],
+  ['Sommergoldhähnchen', 'Regulus ignicapilla', 'Goldhähnchen', P, ['wald', 'siedlung'], '', [], 'song'],
+  ['Steinadler', 'Aquila chrysaetos', 'Habichtartige', 'Greifvögel', ['alpin'], '', [], 'call'],
+  ['Steinkauz', 'Athene noctua', 'Eigentliche Eulen', 'Eulen', ['agrar', 'siedlung'], '', [], 'call'],
+  ['Steinschmätzer', 'Oenanthe oenanthe', 'Fliegenschnäpper', P, ['kueste', 'agrar', 'alpin'], '', [], 'song'],
+  ['Sturmmöwe', 'Larus canus', 'Möwen', 'Regenpfeiferartige', ['kueste', 'gewaesser'], '', [], 'call'],
+  ['Sumpfrohrsänger', 'Acrocephalus palustris', 'Rohrsänger', P, ['gewaesser', 'wald', 'agrar'], '', [], 'song'],
+  ['Tannenhäher', 'Nucifraga caryocatactes', 'Rabenvögel', P, ['wald', 'alpin'], '', [], 'call'],
+  ['Trauerschnäpper', 'Ficedula hypoleuca', 'Fliegenschnäpper', P, ['wald', 'siedlung'], '', [], 'song'],
+  ['Turteltaube', 'Streptopelia turtur', 'Tauben', 'Taubenvögel', ['wald', 'agrar'], '', [], 'song'],
+  ['Uferschnepfe', 'Limosa limosa', 'Schnepfenvögel', 'Regenpfeiferartige', ['kueste', 'gewaesser', 'agrar'], '', [], 'call'],
+  ['Uferschwalbe', 'Riparia riparia', 'Schwalben', P, ['kueste', 'gewaesser'], '', [], 'call'],
+  ['Uhu', 'Bubo bubo', 'Eigentliche Eulen', 'Eulen', ['wald'], '', [], 'song'],
+  ['Waldbaumläufer', 'Certhia familiaris', 'Baumläufer', P, ['wald', 'alpin'], '', [], 'song'],
+  ['Waldlaubsänger', 'Phylloscopus sibilatrix', 'Laubsänger', P, ['wald'], '', [], 'song'],
+  ['Waldohreule', 'Asio otus', 'Eigentliche Eulen', 'Eulen', ['agrar', 'siedlung'], '', [], 'song'],
+  ['Waldschnepfe', 'Scolopax rusticola', 'Schnepfenvögel', 'Regenpfeiferartige', ['wald'], '', [], 'call'],
+  ['Waldwasserläufer', 'Tringa ochropus', 'Schnepfenvögel', 'Regenpfeiferartige', ['gewaesser', 'wald'], '', [], 'call'],
+  ['Wanderfalke', 'Falco peregrinus', 'Falken', 'Falkenartige', ['siedlung', 'alpin'], '', [], 'call'],
+  ['Wasseramsel', 'Cinclus cinclus', 'Wasseramseln', P, ['gewaesser', 'alpin'], '', [], 'song'],
+  ['Wendehals', 'Jynx torquilla', 'Spechte', 'Spechtvögel', ['wald', 'agrar'], '', [], 'call'],
+  ['Wiedehopf', 'Upupa epops', 'Wiedehopfe', 'Hornvögel und Hopfe', ['wald', 'agrar'], '', [], 'song'],
+  ['Wiesenschafstelze', 'Motacilla flava', 'Stelzen und Pieper', P, ['kueste', 'gewaesser', 'agrar'], '', ['Schafstelze'], 'call'],
+  ['Wiesenweihe', 'Circus pygargus', 'Habichtartige', 'Greifvögel', ['kueste', 'gewaesser', 'agrar'], '', [], 'call'],
+];
+const toSp = lv => ([de, sci, fam, ord, hab, hl, syn = [], snd = 'song']) => ({ de, sci, fam, ord, hab, hl, syn, snd, lv });
+/** Bronze-Liste (75 Arten) */
+export const BUILTIN = RAW.map(toSp('b'));
+/** Nur die zusätzlichen Silber-Arten */
+export const SILBER_EXTRA = RAW_S.map(toSp('s'));
+/** Silber-Liste (150 Arten) */
+export const SILBER = [...BUILTIN, ...SILBER_EXTRA].sort((a, b) => a.de.localeCompare(b.de, 'de'));
+/** Alle Arten (für Skripte) */
+export const ALL_SPECIES = SILBER;
 
 /* Grobe Laut-Voreinstellung für importierte Listen ohne Laut-Spalte */
 const CALL_FAMILIES = new Set([
@@ -122,7 +209,7 @@ const CALL_FAMILIES = new Set([
   'Fasanenartige', 'Kormorane', 'Seeschwalben',
 ]);
 export function guessSound(sp) {
-  const known = BUILTIN.find(b => b.sci === sp.sci);
+  const known = ALL_SPECIES.find(b => b.sci === sp.sci);
   if (known) return known.snd;
   if (sp.fam && CALL_FAMILIES.has(sp.fam)) return 'call';
   return 'song';

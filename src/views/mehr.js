@@ -11,7 +11,9 @@ export function mount(root) {
     h('section', { class: 'panel' },
       h('h2', {}, 'Artenliste'),
       h('p', {}, 'Aktiv: ', h('b', {}, list.name)),
-      h('p', { class: 'muted small' }, 'Die 75 Arten der offiziellen BANU-Liste Bronze, mit Bruthabitaten aus der BANU-Tabelle.')),
+      h('p', { class: 'muted small' }, list.level === 's'
+        ? 'Die 150 Arten der BANU-Liste Silber (Bronze + 75 weitere), mit Brut-Lebensräumen aus der BANU-Tabelle. Oben zwischen Bronze und Silber umschalten.'
+        : 'Die 75 Arten der offiziellen BANU-Liste Bronze, mit Bruthabitaten aus der BANU-Tabelle. Oben auf Silber umschalten für 150 Arten.')),
     h('section', { class: 'panel' },
       h('h2', {}, 'Tonaufnahmen'),
       h('p', {}, hasCuratedAudio()
@@ -36,8 +38,10 @@ export function mount(root) {
         ['artStats', 'topoStats', 'qStats', 'bzStats'].forEach(remove); msg.textContent = 'Statistiken gelöscht. Die Bildauswahl bleibt erhalten.';
       } }, 'Statistiken zurücksetzen'), msg),
     h('section', { class: 'panel' },
-      h('h2', {}, 'Zur Prüfung (Bronze)'),
-      h('p', {}, '30 zufällige Arten aus der 75er-Liste, optisch (Prachtkleid) und akustisch (typische Gesänge), dazu Grundwissen zu Systematik, Morphologie, Lebensräumen und Recht. Bestanden ab 80 %, mit Auszeichnung ab 90 %.'),
+      h('h2', {}, `Zur Prüfung (${list.level === 's' ? 'Silber' : 'Bronze'})`),
+      list.level === 's'
+        ? h('p', {}, 'Teil A: 60 Arten aus der 150er-Liste, optisch (Pracht- und Schlichtkleid, beide Geschlechter) und akustisch (auch schwierige Gesänge und Rufe), teils im Gelände – 60 Punkte. Teil B: 20 Punkte zu Systematik, Biologie und Ökologie, Lebensräumen, Schutzstatus und Roter Liste. Bestanden ab 64 von 80 Punkten (80 %), mit Auszeichnung ab 72 (90 %).')
+        : h('p', {}, '30 zufällige Arten aus der 75er-Liste, optisch (Prachtkleid) und akustisch (typische Gesänge), dazu Grundwissen zu Systematik, Morphologie, Lebensräumen und Recht. Bestanden ab 80 %, mit Auszeichnung ab 90 %.'),
       h('p', { class: 'muted small' }, 'Beschriften von Vogelzeichnung, Kopfmuster und Flügel steht im Fragenkatalog für alle Stufen – dafür ist der Bereich Topografie da. Brutzeitcodes werden ebenfalls ab Bronze abgefragt.'),
       h('p', { class: 'muted small' }, 'Quellen: Fotos und Texte von Wikipedia, Töne von xeno-canto und Wikimedia Commons (Lizenzen je Aufnahme). Fragen nach den exemplarischen BANU-Prüfungsfragen; Antworten sind Lernhilfen ohne Gewähr.')),
   );
