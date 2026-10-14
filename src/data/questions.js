@@ -4,7 +4,9 @@
  * Antworten sind Lernhilfen, keine Rechtsberatung – im Zweifel Originalquellen prüfen.
  */
 import { HAB_LABEL } from './species-builtin.js';
-import { CODES, CODE_MAP, SCENARIOS } from './brutzeit.js';
+import { CODES } from './brutzeit.js';
+import { RL_CATS, RL_SPECIES } from './rote-liste.js';
+import { RECHT, LAWS, LAW_BINS } from './questions-recht.js';
 import { EXTRA } from './questions-extra.js';
 import { BRONZE } from './questions-bronze.js';
 import { shuffle, pick } from '../lib/util.js';
@@ -20,28 +22,12 @@ export const CATS = {
 /* ---------- Brutzeitcodes (Daten in brutzeit.js, eigener Trainer im Tab „Brutzeit“) ---------- */
 export const BZC = CODES.map(c => [c.c, c.t]);
 
-/* ---------- Rote Liste ---------- */
-export const RL = [
-  ['0', 'Ausgestorben oder verschollen'],
-  ['1', 'Vom Aussterben bedroht'],
-  ['2', 'Stark gefährdet'],
-  ['3', 'Gefährdet'],
-  ['R', 'Extrem selten'],
-  ['V', 'Vorwarnliste'],
-  ['G', 'Gefährdung unbekannten Ausmaßes'],
-  ['D', 'Daten unzureichend'],
-  ['*', 'Ungefährdet'],
-  ['♦', 'Nicht bewertet'],
-];
+/* ---------- Rote Liste (Daten in rote-liste.js) ---------- */
+export const RL = RL_CATS.map(c => [c.k, c.t]);
 
 /* ---------- Statische Fragen ---------- */
 const BASE = [
   // 1. Systematik & Morphologie
-  { id: 'sys-lappentaucher', lv: 'bsg', cat: 'sys', type: 'open', q: 'Nennen Sie eine Lappentaucherart.',
-    a: 'Haubentaucher, Zwergtaucher (außerdem Rothals-, Schwarzhals- und Ohrentaucher).' },
-  { id: 'sys-lappentaucher-mc', lv: 'bsg', cat: 'sys', type: 'multi', q: 'Welche dieser Arten sind Lappentaucher?',
-    opts: ['Haubentaucher', 'Zwergtaucher', 'Kormoran', 'Blässhuhn', 'Teichhuhn'], ok: [0, 1],
-    a: 'Lappentaucher (Podicipedidae): u. a. Hauben- und Zwergtaucher. Kormoran = Kormorane, Bläss- und Teichhuhn = Rallen.' },
   { id: 'sys-steuerfedern', lv: 'bsg', cat: 'sys', type: 'single', q: 'Wie heißen die großen Schwanzfedern?',
     opts: ['Steuerfedern', 'Schwungfedern', 'Oberschwanzdecken', 'Schirmfedern'], ok: [0],
     a: 'Steuerfedern. Oberschwanzdecken liegen darüber und decken ihre Basis ab.' },
@@ -54,72 +40,13 @@ const BASE = [
   { id: 'sys-alula', lv: 'bsg', cat: 'sys', type: 'single', q: 'Was ist die Alula?',
     opts: ['Daumenfittich – kleine Federgruppe am Flügelbug', 'Die längste Handschwinge', 'Der helle Fleck an der Basis der Handschwingen', 'Die innerste Armschwinge'], ok: [0],
     a: 'Die Alula (Daumenfittich) sitzt am „Daumen“ und hilft beim Langsamflug und bei der Landung, den Luftstrom anzulegen.' },
-  { id: 'sys-schwingen', lv: 'bsg', cat: 'sys', type: 'single', q: 'Welche Schwungfedern sitzen am Handteil des Flügels?',
-    opts: ['Handschwingen', 'Armschwingen', 'Schirmfedern', 'Große Armdecken'], ok: [0],
-    a: 'Handschwingen sitzen an der „Hand“ (außen), Armschwingen am Unterarm (innen).' },
   { id: 'sys-scheitel', lv: 'bsg', cat: 'sys', type: 'single', q: 'Wie heißt der Streif über dem Auge?',
     opts: ['Überaugenstreif', 'Augenstreif', 'Bartstreif', 'Scheitelstreif'], ok: [0],
     a: 'Überaugenstreif (liegt über dem Auge). Der Augenstreif verläuft durch bzw. hinter dem Auge.' },
-  { id: 'sys-hsprojektion', lv: 'sg', cat: 'sys', type: 'open', q: 'Was ist die Handschwingenprojektion? (Skizze gedanklich)',
-    a: 'Der Überstand der Handschwingenspitzen über die längste Schirmfeder beim sitzenden Vogel, oft im Verhältnis zur Länge der Schirmfedern angegeben. Bestimmungsmerkmal z. B. Fitis (lang) vs. Zilpzalp (kurz).' },
-  { id: 'sys-spiegel', lv: 'sg', cat: 'sys', type: 'single', q: 'Zu welcher Gefiederpartie gehört der Flügelspiegel der Gründelenten?',
-    opts: ['Armschwingen', 'Handschwingen', 'Große Handdecken', 'Schulterfedern'], ok: [0],
-    a: 'Armschwingen – der farbige Spiegel ist ein „helles Armfeld“.' },
-  { id: 'sys-hals', lv: 'sg', cat: 'sys', type: 'multi', q: 'Welche fliegen mit gestrecktem Hals?',
-    opts: ['Kormorane', 'Störche', 'Kranich', 'Reiher'], ok: [0, 1, 2],
-    a: 'Kormorane, Störche und Kraniche fliegen mit gestrecktem Hals, Reiher mit eingezogenem (S-förmigem) Hals.' },
-  { id: 'sys-baumlaeufer', lv: 'sg', cat: 'sys', type: 'single', q: 'Woran unterscheidet man Garten- und Waldbaumläufer im Feld am sichersten?',
-    opts: ['Am Gesang', 'An der Schnabellänge', 'Am Lebensraum', 'An der Flügelzeichnung'], ok: [0],
-    a: 'Am Gesang (auch Rufe). Optische Merkmale überlappen stark; beide Arten kommen auch in denselben Lebensräumen vor.' },
-  { id: 'sys-enten', lv: 'sg', cat: 'sys', type: 'open', q: 'Wie unterscheiden sich Tauchenten von Gründelenten bei a) Haltung an Land, b) Lage im Wasser, c) Start aus dem Wasser?',
-    a: 'a) Tauchenten: Beine weit hinten → aufrechte, unbeholfene Haltung; Gründelenten laufen gut, eher waagerecht. b) Tauchenten liegen tiefer im Wasser, Schwanz oft flach auf dem Wasser; Gründelenten liegen höher, Schwanz angehoben. c) Tauchenten laufen zum Start über die Wasseroberfläche an; Gründelenten starten fast senkrecht direkt aus dem Wasser.' },
-  { id: 'sys-nummer', lv: 'sg', cat: 'sys', type: 'single', q: 'Wie werden die Handschwingen bei Singvögeln nummeriert?',
-    opts: ['Von innen (HS 1) nach außen', 'Von außen (HS 1) nach innen', 'Von der längsten zur kürzesten', 'Gar nicht, nur die Armschwingen'], ok: [0],
-    a: 'Handschwingen von innen nach außen (HS 1 grenzt an die Armschwingen), Armschwingen von außen nach innen (AS 1 grenzt an die Hand).' },
-
-  // 2. Biologie & Ökologie
-  { id: 'oek-polygam', lv: 'sg', cat: 'oek', type: 'open', q: 'Zählen Sie zwei polygame Arten auf.',
-    a: 'z. B. Zaunkönig, Fasan, Auerhuhn, Birkhuhn, Kampfläufer, Rohrweihe (teilweise), Kuckuck.' },
-  { id: 'oek-kolonie', lv: 'sg', cat: 'oek', type: 'open', q: 'Nennen Sie zwei Vogelarten, die in Kolonien brüten.',
-    a: 'z. B. Graureiher, Saatkrähe, Uferschwalbe, Lachmöwe, Kormoran, Mehlschwalbe, Dohle.' },
-  { id: 'oek-schwarzspecht', lv: 'sg', cat: 'oek', type: 'open', q: 'Welche heimischen Vogelarten brüten in alten Schwarzspechthöhlen?',
-    a: 'z. B. Hohltaube, Dohle, Raufußkauz, Schellente, Gänsesäger (Nachnutzer).' },
-  { id: 'oek-hohltaube', lv: 'g', cat: 'oek', type: 'single', q: 'Welche Taubenart brütet in alten Schwarzspechthöhlen?',
-    opts: ['Hohltaube', 'Ringeltaube', 'Türkentaube', 'Turteltaube'], ok: [0], a: 'Die Hohltaube – daher der Name.' },
-  { id: 'oek-halbhoehle', lv: 'sg', cat: 'oek', type: 'open', q: 'Nennen Sie zwei typische Halbhöhlenbrüter aus unterschiedlichen Familien.',
-    a: 'z. B. Hausrotschwanz oder Grauschnäpper (Fliegenschnäpper) und Bachstelze (Stelzen und Pieper).' },
-  { id: 'oek-kraehe', lv: 'g', cat: 'oek', type: 'single', q: 'Welche Art aus der Familie der Rabenvögel ist ein Höhlenbrüter?',
-    opts: ['Dohle', 'Elster', 'Eichelhäher', 'Rabenkrähe'], ok: [0], a: 'Die Dohle brütet in Baum-, Fels- und Gebäudehöhlen (auch Schornsteinen).' },
-  { id: 'oek-hoehle', lv: 'sg', cat: 'oek', type: 'multi', q: 'Welche dieser Arten sind Höhlenbrüter?',
-    opts: ['Kohlmeise', 'Star', 'Kleiber', 'Amsel', 'Buchfink'], ok: [0, 1, 2],
-    a: 'Kohlmeise, Star und Kleiber brüten in Höhlen. Amsel und Buchfink bauen offene Napfnester.' },
-  { id: 'oek-keinnest', lv: 'sg', cat: 'oek', type: 'open', q: 'Nennen Sie zwei Arten, die keine eigenen Nester bauen.',
-    a: 'z. B. Kuckuck (Brutparasit), Turmfalke, Baumfalke und Waldohreule (nutzen fremde Nester), Ziegenmelker (legt auf den Boden).' },
-  { id: 'oek-nesthocker', lv: 'sg', cat: 'oek', type: 'open', q: 'Je zwei Beispiele für ausgeprägte Nesthocker und Nestflüchter?',
-    a: 'Nesthocker: z. B. Amsel, Kohlmeise, Buntspecht, Mauersegler. Nestflüchter: z. B. Stockente, Kiebitz, Fasan, Haubentaucher.' },
-  { id: 'oek-greif-lang', lv: 'sg', cat: 'oek', type: 'open', q: 'Nennen Sie zwei in Deutschland brütende Greifvogelarten (inkl. Falken), die Langstreckenzieher sind.',
-    a: 'z. B. Wespenbussard, Baumfalke, Schwarzmilan, Fischadler.' },
-  { id: 'oek-nahrung', lv: 'g', cat: 'oek', type: 'open', q: 'Ordnen Sie zu – Reiherente, Kolbenente, Zwergtaucher, Eisvogel / Armleuchteralgen, Fische, Wandermuscheln, Wasserinsekten.',
-    a: 'Reiherente → Wandermuscheln, Kolbenente → Armleuchteralgen, Zwergtaucher → Wasserinsekten, Eisvogel → Fische.' },
-  { id: 'oek-zieher', lv: 'g', cat: 'oek', type: 'open', q: 'Teilzieher oder Zugvogel? Mauersegler, Mönchsgrasmücke, Star, Sumpfrohrsänger.',
-    a: 'Zugvögel: Mauersegler, Sumpfrohrsänger. Teilzieher: Star, Mönchsgrasmücke (zunehmend Überwinterer in West-/Mitteleuropa).' },
-  { id: 'oek-teilzieher', lv: 'sg', cat: 'oek', type: 'multi', q: 'Welche dieser Arten sind in Deutschland Teilzieher?',
-    opts: ['Star', 'Rotkehlchen', 'Amsel', 'Mauersegler', 'Kuckuck'], ok: [0, 1, 2],
-    a: 'Star, Rotkehlchen und Amsel: ein Teil der Population zieht, ein Teil bleibt. Mauersegler und Kuckuck sind Langstreckenzieher.' },
-  { id: 'oek-richtung', lv: 'sg', cat: 'oek', type: 'single', q: 'Was ist die Hauptabzugsrichtung der in Deutschland brütenden Langstreckenzieher?',
-    opts: ['Südwest', 'Nordost', 'Nordwest', 'Genau Süd über die Alpen'], ok: [0],
-    a: 'Überwiegend Südwest (über Frankreich/Iberien nach Afrika). Einige Arten bzw. Populationen ziehen nach Südost (z. B. „Ostzieher“ beim Weißstorch, Neuntöter).' },
 
   // 3. Lebensraum
   { id: 'leb-drossel', lv: 'bsg', cat: 'leb', type: 'open', q: 'Nennen Sie zwei Drosselarten, die Sie zur Brutzeit in Wäldern erwarten würden.',
     a: 'Singdrossel und Amsel. An Waldrändern und in Feldgehölzen auch die Wacholderdrossel.' },
-  { id: 'leb-siedlung-agrar', lv: 'bsg', cat: 'leb', type: 'open', q: 'Nennen Sie je zwei Arten, die vorwiegend in Siedlungen bzw. im Agrarland brüten.',
-    a: 'Siedlung: z. B. Haussperling, Mehlschwalbe, Mauersegler, Hausrotschwanz, Türkentaube, Straßentaube. Agrarland: z. B. Feldlerche, Goldammer, Kiebitz, Rebhuhn, Dorngrasmücke.' },
-  { id: 'leb-typisch', lv: 'bsg', cat: 'leb', type: 'open', q: 'Nennen Sie je eine typische Art für: Binnengewässer & Feuchtgebiete, Wälder & Heiden, Agrarlandschaft, Siedlungen.',
-    a: 'z. B. Haubentaucher / Teichrohrsänger – Buntspecht / Kleiber – Feldlerche / Goldammer – Haussperling / Mehlschwalbe.' },
-  { id: 'leb-sandregenpfeifer', lv: 'g', cat: 'leb', type: 'single', q: 'Brüten Sandregenpfeifer im Binnenland?',
-    opts: ['Ja, aber nur vereinzelt – Schwerpunkt ist die Küste', 'Nein, nie', 'Ja, überwiegend im Binnenland', 'Nur in den Alpen'], ok: [0],
-    a: 'Brutschwerpunkt ist die Küste; im Binnenland nur sehr lokal (z. B. Sand- und Kiesflächen). Typischer Binnenland-Regenpfeifer ist der Flussregenpfeifer. (Bitte mit aktueller Literatur/ADEBAR abgleichen.)' },
 
   // 4. Sachkenntnis & Recht
   { id: 'sach-auerhahn', lv: 'bsg', cat: 'sach', type: 'single', q: 'Sie finden Federn eines Auerhahns im Schwarzwald. Dürfen Sie diese mitnehmen?',
@@ -131,23 +58,12 @@ const BASE = [
   { id: 'sach-klangattrappe', lv: 'bsg', cat: 'sach', type: 'single', q: 'Ist der Einsatz von Klangattrappen überall erlaubt?',
     opts: ['Nein', 'Ja', 'Ja, außer nachts', 'Ja, wenn die Art häufig ist'], ok: [0],
     a: 'Nein. Klangattrappen können Vögel erheblich stören (Störungsverbot), in Schutzgebieten sind sie meist verboten. Für Erfassungen nur gezielt, sparsam und nach Methodenstandard – bei seltenen Arten nur mit Abstimmung/Genehmigung.' },
-  { id: 'sach-rl-stern', lv: 'bsg', cat: 'sach', type: 'single', q: 'Was bedeutet die Bezeichnung „*“ in der Roten Liste?',
-    opts: ['Ungefährdet', 'Vorwarnliste', 'Daten unzureichend', 'Nicht bewertet'], ok: [0],
-    a: '* = ungefährdet. V = Vorwarnliste, D = Daten unzureichend, ♦ = nicht bewertet.' },
   { id: 'sach-fotofalle', lv: 'bsg', cat: 'sach', type: 'open', q: 'Sie möchten Waldschnepfen mit Fotofallen und Audiorekorder dokumentieren. Was ist beim Anbringen im Gelände zu beachten?',
     a: 'Erlaubnis von Grundeigentümer/Jagdausübungsberechtigten; in Schutzgebieten Genehmigung der Naturschutzbehörde; Störungen vermeiden (Abstand zu Brutplätzen, keine häufigen Kontrollen zur Brutzeit); Datenschutz (Kameras nicht auf Wege richten, Personenaufnahmen vermeiden, ggf. Hinweisschild); baumschonend befestigen (Gurte statt Nägel); Diebstahlschutz; Geräte nach Abschluss entfernen.' },
-  { id: 'sach-koedern', lv: 'sg', cat: 'sach', type: 'open', q: 'In welchen Fällen ist das Ködern und Anlocken von Vögeln erlaubt?',
-    a: 'Faustregel: nur wenn keine erhebliche Störung entsteht (z. B. übliche Fütterung im Garten) oder im Rahmen genehmigter Vorhaben (wissenschaftliche Erfassung, Beringung, Artenschutzmaßnahmen). In Schutzgebieten und an Brutplätzen geschützter Arten grundsätzlich nicht ohne Genehmigung.' },
-  { id: 'sach-eu', lv: 'bsg', cat: 'sach', type: 'multi', q: 'Welche sind für Vogelbeobachter*innen relevante europäische Rechtsvorschriften?',
-    opts: ['Vogelschutzrichtlinie', 'FFH-Richtlinie', 'Bundesnaturschutzgesetz', 'Bundesartenschutzverordnung'], ok: [0, 1],
-    a: 'Europäisch: EU-Vogelschutzrichtlinie (2009/147/EG), FFH-Richtlinie (92/43/EWG), außerdem die EU-Artenschutzverordnung (EG Nr. 338/97). BNatSchG und BArtSchV sind nationales Recht.' },
 
-  // 5. Methoden
-  { id: 'meth-ring', lv: 'sg', cat: 'meth', type: 'open', q: 'Wie melden Sie einen Ringfund an einem verendet vorgefundenen Vogel?',
-    a: 'Ringinschrift (Beringungszentrale + Nummer) vollständig notieren, Fundort (Koordinaten), Datum, Fundumstände und Zustand festhalten, ggf. Foto. Meldung an die auf dem Ring genannte Beringungszentrale (z. B. Vogelwarte Helgoland, Radolfzell, Beringungszentrale Hiddensee) – meist per Online-Formular. Der Ring kann ggf. eingeschickt werden.' },
 ];
 
-export const STATIC = [...BASE, ...EXTRA, ...BRONZE];
+export const STATIC = [...BASE, ...EXTRA, ...BRONZE, ...RECHT];
 
 /* ---------- Generierte Fragen ---------- */
 function mc(id, lv, cat, q, correct, distractors, a) {
@@ -159,57 +75,113 @@ const uniq = a => [...new Set(a.filter(Boolean))];
  * ausgeglichen ziehen kann, statt zu zwei Dritteln Sperlingsvögel zu bringen. */
 const tag = (q, ord) => (ord ? { ...q, ord } : q);
 
+/* Steckt der Familien- oder Ordnungsname schon im Artnamen?
+ * (Kohlmeise – Meisen, Turmfalke – Falkenartige, Stockente – Entenvögel …)
+ * Solche Fragen sind geschenkt und werden nicht gestellt. */
+const fold = t => t.toLowerCase().replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss');
+const EXTRA_STEMS = { Lappentaucher: ['taucher'], Fliegenschnäpper: ['schnapper'], Hühnervögel: ['huhn'] };
+function stems(group) {
+  const out = new Set(EXTRA_STEMS[group] || []);
+  group.split(/\s+und\s+|\s+/).forEach(w => {
+    let b = fold(w);
+    if (b.length < 4) return;
+    out.add(b);
+    const core = b.replace(/(vogel|artige)$/, '');
+    [b, core].forEach(x => {
+      ['', 'en', 'n', 'e', 's'].forEach(suf => {
+        const st = suf && x.endsWith(suf) ? x.slice(0, -suf.length) : x;
+        if (st.length >= 4) out.add(st);
+      });
+    });
+  });
+  return [...out];
+}
+export const nameHasGroup = (name, group) => !!group && stems(group).some(st => fold(name).includes(st));
+
+/* Zuordnungsaufgabe: Elemente in Fächer sortieren */
+function sortQ(id, cat, q, bins, items, a) {
+  return { id, lv: 'b', cat, type: 'sort', q, bins, items: shuffle(items.slice()), a, generated: true };
+}
+
 export function generateQuestions(species) {
   const out = [];
+  const byDe = new Map(species.map(s => [s.de, s]));
   const fams = uniq(species.map(s => s.fam));
   const ords = uniq(species.map(s => s.ord));
   const habs = Object.keys(HAB_LABEL);
 
-  // Brutzeitcodes – eine Auswahl; den vollen Drill gibt es im Tab „Brutzeit“
-  shuffle(SCENARIOS.slice()).slice(0, 12).forEach((sc, i) => {
-    const wrong = shuffle(CODES.map(c => c.c).filter(c => c !== sc.c)).slice(0, 3);
-    out.push(mc(`bzc-${i}`, 'bsg', 'meth', `Welchen Brutzeitcode vergeben Sie? ${sc.s}`, sc.c, wrong,
-      `${sc.c}: ${CODE_MAP[sc.c].t}. ${sc.x}`));
+  // ---- Rote Liste: Kategorie erklären + Art auswählen ----
+  RL_CATS.forEach(c => {
+    const wrong = shuffle(RL_CATS.filter(r => r.k !== c.k).map(r => r.t)).slice(0, 3);
+    out.push(mc(`rl-${c.k}`, 'b', 'sach', `Was bedeutet die Kategorie „${c.k}“ in der Roten Liste?`, c.t, wrong, `${c.k} = ${c.t}: ${c.x}`));
   });
+  const rlKeys = Object.keys(RL_SPECIES);
+  rlKeys.forEach(k => {
+    const c = RL_CATS.find(x => x.k === k);
+    // Bronze-Arten bevorzugt als richtige Antwort, sonst beliebige
+    const list = RL_SPECIES[k];
+    const bronze = list.filter(d => byDe.has(d));
+    for (let n = 0; n < 3; n++) {
+      const right = pick(n < 2 && bronze.length ? bronze : list);
+      const others = shuffle(rlKeys.filter(x => x !== k)).slice(0, 3).map(x => pick(RL_SPECIES[x]));
+      const where = others.map((d, i2) => `${d}: ${rlKeysOf(d)}`).join(', ');
+      out.push(mc(`rlart-${k}-${n}`, 'b', 'sach',
+        `Kategorie ${k} der Roten Liste heißt „${c.t}“. Welche dieser Arten steht in dieser Kategorie?`,
+        right, others,
+        `${right} steht in Kategorie ${k} (${c.t}). ${c.x} Die anderen: ${where}.`));
+    }
+  });
+  function rlKeysOf(d) { return rlKeys.find(x => RL_SPECIES[x].includes(d)); }
 
-  // Rote-Liste-Kategorien
-  RL.forEach(([k, txt]) => {
-    const wrong = shuffle(RL.filter(r => r[0] !== k).map(r => r[1])).slice(0, 3);
-    out.push(mc(`rl-${k}`, 'bsg', 'sach', `Was bedeutet die Kategorie „${k}“ in der Roten Liste?`, txt, wrong, `${k} = ${txt}.`));
-  });
+  // ---- Rechtsnormen: EU oder Deutschland? ----
+  for (let n = 0; n < 3; n++) {
+    const pickL = shuffle(LAWS.slice()).slice(0, 5);
+    out.push(sortQ(`recht-sort-${n}`, 'sach', 'Europäisches oder deutsches Recht? Ordnen Sie zu.', LAW_BINS,
+      pickL.map(l => ({ t: l.short, bin: l.eu ? 0 : 1 })),
+      'Europäisch: Vogelschutzrichtlinie, FFH-Richtlinie, Natura 2000, EU-Artenschutzverordnung. Deutsch: Bundesnaturschutzgesetz (mit § 39 und § 44), Bundesartenschutzverordnung, Bundesjagdgesetz, Landesnaturschutzgesetze. EU-Richtlinien müssen in deutsches Recht umgesetzt werden, EU-Verordnungen gelten direkt.'));
+  }
 
   if (species.length < 8) return out;
 
+  // ---- Arten in Ordnungen sortieren ----
+  const ordOk = species.filter(s => s.ord && !nameHasGroup(s.de, s.ord));
+  for (let n = 0; n < 8; n++) {
+    const binsO = shuffle(uniq(ordOk.map(s => s.ord))).slice(0, 3);
+    const items = binsO.flatMap((o, bi) => shuffle(ordOk.filter(s => s.ord === o)).slice(0, 2).map(s => ({ t: s.de, bin: bi })));
+    out.push(sortQ(`sortord-${n}`, 'sys', 'Ordnen Sie die Arten ihrer Ordnung zu.', binsO, items,
+      binsO.map((o, bi) => `${o}: ${items.filter(it => it.bin === bi).map(it => it.t).join(', ')}`).join(' · ')));
+  }
+  // ---- Arten in Familien sortieren (ohne Arten, die den Familiennamen im Namen tragen) ----
+  const famOk = species.filter(s => s.fam && !nameHasGroup(s.de, s.fam));
+  const famsOk = uniq(famOk.map(s => s.fam));
+  for (let n = 0; n < 8; n++) {
+    // zwei Familien mit mehreren passenden Arten + eine beliebige weitere
+    const multi = shuffle(famsOk.filter(f => famOk.filter(s => s.fam === f).length >= 2)).slice(0, 2);
+    const binsF = shuffle([...multi, pick(famsOk.filter(f => !multi.includes(f)))]);
+    const items = binsF.flatMap((f, bi) => shuffle(famOk.filter(s => s.fam === f)).slice(0, 2).map(s => ({ t: s.de, bin: bi })));
+    out.push(sortQ(`sortfam-${n}`, 'sys', 'Ordnen Sie die Arten ihrer Familie zu.', binsF, items,
+      binsF.map((f, bi) => `${f}: ${items.filter(it => it.bin === bi).map(it => it.t).join(', ')}`).join(' · ')));
+  }
+
   species.forEach(sp => {
-    // Familie
-    if (sp.fam && fams.length >= 4) {
+    // Familie – nicht, wenn der Familienname im Artnamen steckt
+    if (sp.fam && fams.length >= 4 && !nameHasGroup(sp.de, sp.fam)) {
       const wrong = shuffle(fams.filter(f => f !== sp.fam)).slice(0, 3);
-      out.push(tag(mc(`fam-${sp.sci}`, 'bsg', 'sys', `Zu welcher Familie gehört: ${sp.de}?`, sp.fam, wrong,
+      out.push(tag(mc(`fam-${sp.sci}`, 'b', 'sys', `Zu welcher Familie gehört: ${sp.de}?`, sp.fam, wrong,
         `${sp.de} (${sp.sci}) gehört zur Familie ${sp.fam}${sp.ord ? ', Ordnung ' + sp.ord : ''}.`), sp.ord));
     }
-    // Ordnung (nur Nicht-Sperlingsvögel, sonst zu leicht)
-    if (sp.ord && sp.ord !== 'Sperlingsvögel' && ords.length >= 4) {
+    // Ordnung (nur Nicht-Sperlingsvögel, und nicht, wenn der Name schon verrät)
+    if (sp.ord && sp.ord !== 'Sperlingsvögel' && ords.length >= 4 && !nameHasGroup(sp.de, sp.ord)) {
       const wrong = shuffle(ords.filter(o => o !== sp.ord)).slice(0, 3);
-      out.push(tag(mc(`ord-${sp.sci}`, 'bsg', 'sys', `Zu welcher Ordnung gehört: ${sp.de}?`, sp.ord, wrong,
+      out.push(tag(mc(`ord-${sp.sci}`, 'b', 'sys', `Zu welcher Ordnung gehört: ${sp.de}?`, sp.ord, wrong,
         `${sp.de}: Ordnung ${sp.ord}, Familie ${sp.fam}.`), sp.ord));
     }
-    // Lebensraum der Art
-    if (sp.hab?.length) {
+    // Lebensraum der Art – nicht bei „mehrere Lebensräume (indifferent)“
+    if (sp.hab?.length && !/^mehrere Lebensräume \(indifferent\)/.test(sp.hl || '')) {
       const wrong = shuffle(habs.filter(h => !sp.hab.includes(h))).slice(0, 3).map(h => HAB_LABEL[h]);
-      out.push(tag(mc(`hab-${sp.sci}`, 'bsg', 'leb', `In welchem Lebensraum brütet ${sp.de} typischerweise?`, HAB_LABEL[sp.hab[0]], wrong,
-        `${sp.de}: ${sp.hl ? sp.hl + ' – ' : ''}${sp.hab.map(h => HAB_LABEL[h]).join(', ')} (laut Artenliste).`), sp.ord));
+      out.push(tag(mc(`hab-${sp.sci}`, 'b', 'leb', `In welchem Lebensraum brütet ${sp.de} hauptsächlich?`, HAB_LABEL[sp.hab[0]], wrong,
+        `${sp.de}: ${sp.hl ? sp.hl + ' – ' : ''}${sp.hab.map(h => HAB_LABEL[h]).join(', ')} (laut BANU-Tabelle).`), sp.ord));
     }
-  });
-
-  // Welche Art gehört zur Familie X?
-  fams.forEach(fam => {
-    const members = species.filter(s => s.fam === fam);
-    const others = species.filter(s => s.fam !== fam);
-    if (!members.length || others.length < 3) return;
-    const c = pick(members);
-    out.push(tag(mc(`fammem-${fam}`, 'bsg', 'sys', `Welche dieser Arten gehört zur Familie ${fam}?`, c.de,
-      shuffle(others).slice(0, 3).map(s => s.de),
-      `${fam}: ${members.map(m => m.de).join(', ')}.`), members[0].ord));
   });
 
   // Welche Art erwarten Sie im Lebensraum X?
@@ -218,9 +190,9 @@ export function generateQuestions(species) {
     const notH = species.filter(s => !s.hab?.includes(hk));
     if (inH.length < 1 || notH.length < 3) return;
     const c = pick(inH);
-    out.push(mc(`habmem-${hk}`, 'bsg', 'leb', `Welche Art erwarten Sie zur Brutzeit typischerweise im Lebensraum „${HAB_LABEL[hk]}“?`, c.de,
+    out.push(mc(`habmem-${hk}`, 'b', 'leb', `Welche Art erwarten Sie zur Brutzeit typischerweise im Lebensraum „${HAB_LABEL[hk]}“?`, c.de,
       shuffle(notH).slice(0, 3).map(s => s.de),
-      `Typisch für ${HAB_LABEL[hk]} (Hauptlebensraum laut Artenliste): ${inH.map(s => s.de).join(', ')}.`));
+      `Typisch für ${HAB_LABEL[hk]} (Hauptlebensraum laut BANU-Tabelle): ${inH.map(s => s.de).join(', ')}.`));
   });
 
   return out;

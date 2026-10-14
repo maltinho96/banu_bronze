@@ -1,0 +1,65 @@
+/* Rechtsnormen für Vogelbeobachter*innen – europäisch und deutsch.
+ * Jede Norm wird mit einer Frage „Was regelt …?“ und einer ausführlichen Erklärung abgefragt,
+ * dazu eine Zuordnungsfrage EU / Deutschland. Lernhilfe ohne Gewähr – Landesrecht kann abweichen. */
+
+export const LAWS = [
+  { k: 'vsrl', name: 'EU-Vogelschutzrichtlinie', eu: true, short: 'Vogelschutzrichtlinie (2009/147/EG)',
+    q: 'Was regelt die EU-Vogelschutzrichtlinie?',
+    ok: 'Den Schutz aller wild lebenden Vogelarten in der EU',
+    wrong: ['Den internationalen Handel mit gefährdeten Tieren', 'Die Jagdzeiten in Deutschland', 'Den Schutz von Lebensraumtypen und Nicht-Vogelarten'],
+    a: 'Die Vogelschutzrichtlinie (1979, heute 2009/147/EG) schützt alle wild lebenden Vogelarten im Gebiet der EU: Verbot von Töten, Fangen, Nestzerstörung und Eiersammeln. Für Arten des Anhangs I (z. B. Eisvogel, Neuntöter, Rotmilan) müssen Europäische Vogelschutzgebiete (SPA) ausgewiesen werden. Als Richtlinie wirkt sie nicht direkt – die Staaten setzen sie in nationales Recht um (bei uns: BNatSchG).' },
+  { k: 'ffh', name: 'FFH-Richtlinie', eu: true, short: 'Fauna-Flora-Habitat-Richtlinie (92/43/EWG)',
+    q: 'Was regelt die FFH-Richtlinie?',
+    ok: 'Den Schutz von Lebensraumtypen sowie Tier- und Pflanzenarten außer Vögeln',
+    wrong: ['Den Schutz aller Vogelarten', 'Die Beringung von Vögeln', 'Den Handel mit Vogelfedern'],
+    a: 'Die Fauna-Flora-Habitat-Richtlinie (92/43/EWG) schützt Lebensraumtypen (Anhang I) und Arten (Anhang II: Schutzgebiete nötig, Anhang IV: streng zu schützen). Vögel sind nicht enthalten – für sie gilt die Vogelschutzrichtlinie. Die FFH-Gebiete bilden zusammen mit den Vogelschutzgebieten das Netz Natura 2000.' },
+  { k: 'natura', name: 'Natura 2000', eu: true, short: 'Natura 2000 (Schutzgebietsnetz)',
+    q: 'Was ist Natura 2000?',
+    ok: 'Das EU-weite Netz aus FFH-Gebieten und Vogelschutzgebieten (SPA)',
+    wrong: ['Ein deutsches Naturschutzgesetz aus dem Jahr 2000', 'Eine Rote Liste der EU', 'Ein Förderprogramm für Nistkästen'],
+    a: 'Natura 2000 ist kein eigenes Gesetz, sondern das zusammenhängende Schutzgebietsnetz der EU: FFH-Gebiete (nach FFH-Richtlinie) plus Europäische Vogelschutzgebiete = SPA (Special Protection Areas, nach Vogelschutzrichtlinie). Pläne und Projekte, die ein Gebiet erheblich beeinträchtigen können, brauchen eine Verträglichkeitsprüfung (§ 34 BNatSchG).' },
+  { k: 'artschvo', name: 'EU-Artenschutzverordnung', eu: true, short: 'EU-Artenschutzverordnung (EG Nr. 338/97)',
+    q: 'Was regelt die EU-Artenschutzverordnung (EG) Nr. 338/97?',
+    ok: 'Den Handel mit geschützten Tieren und Pflanzen – Umsetzung des Washingtoner Artenschutzübereinkommens (CITES)',
+    wrong: ['Die Ausweisung von Vogelschutzgebieten', 'Die Schonzeiten für Wasservögel', 'Das Betreten von Wäldern'],
+    a: 'Die EU-Artenschutzverordnung setzt CITES (Washingtoner Artenschutzübereinkommen) in der EU um und regelt Ein- und Ausfuhr, Handel und Vermarktung. Sie gilt als Verordnung direkt, ohne Umsetzung. Arten in ihrem Anhang A (z. B. alle Greifvögel und Eulen) sind in Deutschland automatisch streng geschützt.' },
+  { k: 'bnatschg', name: 'Bundesnaturschutzgesetz', eu: false, short: 'Bundesnaturschutzgesetz (BNatSchG)',
+    q: 'Welches Gesetz setzt in Deutschland die Vogelschutz- und FFH-Richtlinie um und enthält die Artenschutzverbote?',
+    ok: 'Das Bundesnaturschutzgesetz (BNatSchG)',
+    wrong: ['Das Bundesjagdgesetz', 'Das Tierschutzgesetz', 'Die EU-Artenschutzverordnung'],
+    a: 'Das Bundesnaturschutzgesetz ist das zentrale deutsche Naturschutzgesetz. Wichtig für Vogelbeobachter: § 7 definiert „besonders“ und „streng geschützt“ (alle europäischen Vögel sind besonders geschützt), § 39 regelt den allgemeinen Schutz wild lebender Tiere und Pflanzen (u. a. Gehölzschnitt-Verbot 1. März–30. September), § 44 enthält die Zugriffs-, Besitz- und Vermarktungsverbote.' },
+  { k: 'p44', name: '§ 44 BNatSchG', eu: false, short: '§ 44 BNatSchG (Zugriffsverbote)',
+    q: 'Was regelt § 44 Absatz 1 des Bundesnaturschutzgesetzes?',
+    ok: 'Die Zugriffsverbote: Töten/Fangen, erhebliches Stören und Zerstören von Fortpflanzungs- und Ruhestätten',
+    wrong: ['Die Liste der jagdbaren Arten', 'Die Ausweisung von Naturschutzgebieten', 'Die Kategorien der Roten Liste'],
+    a: '§ 44 Abs. 1 BNatSchG: Nr. 1 – besonders geschützte Tiere nicht fangen, verletzen oder töten; Nr. 2 – streng geschützte Arten und europäische Vögel während Fortpflanzungs-, Aufzucht-, Mauser-, Überwinterungs- und Wanderungszeiten nicht erheblich stören (erheblich = Erhaltungszustand der lokalen Population verschlechtert sich); Nr. 3 – Fortpflanzungs- und Ruhestätten nicht beschädigen oder zerstören. Abs. 2 verbietet zusätzlich Besitz und Vermarktung, auch von Federn, Eiern und Nestern.' },
+  { k: 'p39', name: '§ 39 BNatSchG', eu: false, short: '§ 39 BNatSchG (allgemeiner Artenschutz)',
+    q: 'Was regelt § 39 des Bundesnaturschutzgesetzes für alle wild lebenden Tiere?',
+    ok: 'Den allgemeinen Artenschutz – u. a. kein mutwilliges Stören und kein Gehölzrückschnitt vom 1. März bis 30. September',
+    wrong: ['Nur den Schutz der Arten des Anhangs I', 'Den Handel mit exotischen Vögeln', 'Die Brutzeitcodes für Kartierungen'],
+    a: '§ 39 BNatSchG gilt für alle wild lebenden Tiere, nicht nur für geschützte: Sie dürfen nicht mutwillig beunruhigt, ohne vernünftigen Grund gefangen, verletzt oder getötet werden, ihre Lebensstätten nicht ohne vernünftigen Grund zerstört werden. Außerdem: Hecken, Gebüsche und Bäume außerhalb von Wald dürfen vom 1. März bis 30. September nicht abgeschnitten oder auf den Stock gesetzt werden (schonende Form- und Pflegeschnitte erlaubt).' },
+  { k: 'bartschv', name: 'Bundesartenschutzverordnung', eu: false, short: 'Bundesartenschutzverordnung (BArtSchV)',
+    q: 'Was regelt die Bundesartenschutzverordnung (BArtSchV)?',
+    ok: 'Welche Arten in Deutschland zusätzlich besonders oder streng geschützt sind',
+    wrong: ['Die EU-weiten Vogelschutzgebiete', 'Die Jagdzeiten', 'Den Handel mit Arten nach CITES'],
+    a: 'Die Bundesartenschutzverordnung ergänzt das BNatSchG: In ihrer Anlage 1 stehen Arten, die in Deutschland zusätzlich besonders oder streng geschützt sind (z. B. sind Grünspecht, Eisvogel und Kiebitz streng geschützt). Außerdem regelt sie u. a. Haltung, Kennzeichnung und Meldepflichten.' },
+  { k: 'bjagdg', name: 'Bundesjagdgesetz', eu: false, short: 'Bundesjagdgesetz (BJagdG)',
+    q: 'Was regelt das Bundesjagdgesetz bei Vögeln?',
+    ok: 'Welche Vogelarten jagdbares Wild sind – auch Arten mit ganzjähriger Schonzeit',
+    wrong: ['Den Schutz aller Singvögel', 'Die Meldung von Ringfunden', 'Die Rote Liste'],
+    a: 'Das Bundesjagdgesetz (und die Landesjagdgesetze) zählt bestimmte Vögel zum Wild, z. B. Stockente, Graugans, Ringeltaube, Rebhuhn, Höckerschwan und alle Greifvögel. Für sie gilt Jagdrecht und Naturschutzrecht nebeneinander. Viele haben ganzjährige Schonzeit (z. B. Greifvögel). Tote Wildvögel darf nur der/die Jagdausübungsberechtigte aneignen.' },
+  { k: 'landesrecht', name: 'Landesnaturschutzgesetze', eu: false, short: 'Landesnaturschutzgesetze',
+    q: 'Was regeln die Naturschutzgesetze der Bundesländer?',
+    ok: 'Ergänzungen und Abweichungen zum BNatSchG, z. B. Schutzgebietsverordnungen und Betretungsrechte',
+    wrong: ['Den EU-weiten Artenschutz', 'Die Rote Liste Deutschlands', 'Den Artenhandel nach CITES'],
+    a: 'Die Bundesländer dürfen in Teilen vom BNatSchG abweichen und ergänzen es. Dort stehen z. B. Regeln zum Betreten der freien Landschaft, Schutzgebietsverordnungen (Naturschutzgebiete, Landschaftsschutzgebiete) und die Zuständigkeit der Naturschutzbehörden.' },
+];
+
+/* „Was regelt …?“-Fragen */
+export const RECHT = LAWS.map(l => ({
+  id: `recht-${l.k}`, lv: 'b', cat: 'sach', type: 'single', q: l.q,
+  opts: [l.ok, ...l.wrong], ok: [0], a: l.a,
+}));
+
+/* Zuordnung EU / Deutschland – je Runde 5 zufällige Normen */
+export const LAW_BINS = ['Europäisches Recht', 'Deutsches Recht'];

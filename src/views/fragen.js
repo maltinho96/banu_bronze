@@ -106,7 +106,8 @@ export function mount(root, ctx) {
     const q = shuffled(session[i]);
     const head = h('p', { class: 'qmeta' }, `${i + 1} / ${session.length} · ${CATS[q.cat]}`);
     const qtext = h('h2', { class: 'qtext' }, q.q);
-    const hint = q.type === 'multi' ? h('p', { class: 'muted small' }, 'Mehrere Antworten können richtig sein.') : null;
+    const hint = q.type === 'multi' ? h('p', { class: 'muted small' }, 'Mehrere Antworten können richtig sein.')
+      : q.type === 'sort' ? h('p', { class: 'muted small' }, 'Für jede Zeile das passende Feld antippen.') : null;
     const body = h('div', { class: 'qbody' });
     const after = h('div', { class: 'qafter' });
     card.append(head, qtext, hint || '', body, after);
@@ -131,6 +132,40 @@ export function mount(root, ctx) {
       } }, 'Antwort zeigen');
       const grade = ok => { recordResult('qStats', q.id, ok); if (ok) right++; i++; show(); };
       body.append(ta, showBtn);
+      return;
+    }
+
+    if (q.type === 'sort') {
+      // Zuordnen: für jedes Element ein Fach wählen
+      const choice = new Array(q.items.length).fill(-1);
+      const checkBtn = h('button', { class: 'btn', type: 'button', disabled: true, onclick: () => {
+        checkBtn.remove();
+        let allOk = true;
+        rows.forEach((r, k) => {
+          const it = q.items[k];
+          r.querySelectorAll('button').forEach((b, bi) => {
+            b.disabled = true;
+            if (bi === it.bin) b.classList.add('is-right');
+            else if (bi === choice[k]) b.classList.add('is-wrong');
+          });
+          if (choice[k] !== it.bin) allOk = false;
+        });
+        explain(allOk);
+      } }, 'Prüfen');
+      const rows = q.items.map((it, k) => {
+        const row = h('div', { class: 'sort-row' }, h('b', { class: 'sort-item' }, it.t));
+        const opts = h('div', { class: 'sort-bins' }, ...q.bins.map((bn, bi) => h('button', {
+          type: 'button', class: 'choice small', 'aria-pressed': 'false',
+          onclick: e => {
+            choice[k] = bi;
+            opts.querySelectorAll('button').forEach((x, xi) => x.setAttribute('aria-pressed', String(xi === bi)));
+            checkBtn.disabled = choice.includes(-1);
+          },
+        }, bn)));
+        row.append(opts);
+        return row;
+      });
+      body.append(h('div', { class: 'sort' }, ...rows), checkBtn);
       return;
     }
 
