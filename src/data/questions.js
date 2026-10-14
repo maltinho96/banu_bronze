@@ -8,6 +8,7 @@ import { CODES } from './brutzeit.js';
 import { RL_CATS, RL_SPECIES } from './rote-liste.js';
 import { RECHT, LAWS, LAW_BINS } from './questions-recht.js';
 import { SILBER_Q } from './questions-silber.js';
+import { DIMORPH } from './dimorph.js';
 import { EXTRA } from './questions-extra.js';
 import { BRONZE } from './questions-bronze.js';
 import { shuffle, pick } from '../lib/util.js';
@@ -184,6 +185,18 @@ export function generateQuestions(species) {
       out.push(tag(mc(`hab-${sp.sci}`, 'bs', 'leb', `In welchem Lebensraum brütet ${sp.de} hauptsächlich?`, HAB_LABEL[sp.hab[0]], wrong,
         `${sp.de}: ${sp.hl ? sp.hl + ' – ' : ''}${sp.hab.map(h => HAB_LABEL[h]).join(', ')} (laut BANU-Tabelle).`), sp.ord));
     }
+  });
+
+  // Geschlechtsdimorphismus: welche Beschreibung passt zu ♂ bzw. ♀?
+  const dim = species.filter(s => DIMORPH[s.de]);
+  dim.forEach(sp => {
+    const d = DIMORPH[sp.de];
+    const sex = Math.random() < 0.5 ? 'm' : 'f';
+    const other = sex === 'm' ? 'f' : 'm';
+    const label = sex === 'm' ? 'Männchen' : 'Weibchen';
+    const wrong = [d[other], ...shuffle(dim.filter(s => s !== sp)).slice(0, 2).map(s => DIMORPH[s.de][sex])];
+    out.push(tag(mc(`sex-${sp.sci}`, 'bs', 'sys', `Welche Beschreibung passt zum ${label} der Art ${sp.de}?`, d[sex], wrong,
+      `${sp.de}: ♂ ${d.m}. ♀ ${d.f}.`), sp.ord));
   });
 
   // Welche Art erwarten Sie im Lebensraum X?

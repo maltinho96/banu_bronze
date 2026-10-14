@@ -459,3 +459,16 @@ details.sys-fam .sys-note { margin-left: 30px; }
 
 .vw-grid.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .vw-marks li, .vw-col h3 { overflow-wrap: anywhere; hyphens: auto; }
+
+/* Männchen / Weibchen */
+.sexbox { margin: 10px 0; }
+.sex-title { font-weight: 700; font-size: .92rem; margin: 0 0 6px; }
+.sexgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.sexfig { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--paper); }
+.sexfig.is-shown { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.sex-img { position: relative; aspect-ratio: 4 / 3; background: var(--field); }
+.sex-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sex-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-size: .8rem; text-align: center; padding: 6px; }
+.sexfig figcaption { padding: 6px 8px 8px; font-size: .84rem; line-height: 1.35; overflow-wrap: anywhere; }
+.sexfig figcaption b { display: block; margin-bottom: 2px; }
+.sexnote { font-size: .9rem; margin: 6px 0; }

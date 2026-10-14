@@ -12,7 +12,8 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { findSpeciesPhotos, withRetry } from '../src/lib/photo-search.js';
+import { findSpeciesPhotos, findSexPhoto, detectSex, withRetry } from '../src/lib/photo-search.js';
+import { DIMORPH } from '../src/data/dimorph.js';
 import { ALL_SPECIES } from '../src/data/species-builtin.js';
 
 const args = process.argv.slice(2);
@@ -41,11 +42,27 @@ let added = 0, kept = 0, empty = [], failed = [];
 for (const [i, sp] of todo.entries()) {
   const key = `art:${sp.sci}`;
   const has = Array.isArray(out[key]) ? out[key].length : out[key] ? 1 : 0;
-  if (has && !force && !only.length) { kept++; continue; }
+  const dimorph = !!DIMORPH[sp.de];
+  if (has && !force && !only.length) {
+    // Arten mit Geschlechtsunterschied: fehlendes ♂- oder ♀-Foto nachholen
+    const lst = Array.isArray(out[key]) ? out[key] : [out[key]];
+    const miss = dimorph ? ['m', 'f'].filter(s => !lst.some(p => (p.sex || detectSex(p.title)) === s)) : [];
+    if (!miss.length) { kept++; continue; }
+    process.stdout.write(`[${i + 1}/${todo.length}] ${sp.de} – suche ${miss.map(s => s === 'm' ? '♂' : '♀').join(' und ')} … `);
+    const got = [];
+    for (const s of miss) {
+      try { const p = await findSexPhoto(sp, s, { fetch: politeFetch }); if (p) { lst.push(p); got.push(s === 'm' ? '♂' : '♀'); } } catch { /* weiter */ }
+    }
+    out[key] = lst;
+    console.log(got.length ? `${got.join(' ')} ergänzt` : 'nichts gefunden');
+    if (got.length) added++; else kept++;
+    fs.writeFileSync(outFile, JSON.stringify(out, null, 1));
+    continue;
+  }
   process.stdout.write(`[${i + 1}/${todo.length}] ${sp.de} … `);
   let list = [];
   const errors = [];
-  try { list = await findSpeciesPhotos(sp, { fetch: politeFetch, n: N, onError: m => errors.push(m) }); }
+  try { list = await findSpeciesPhotos(sp, { fetch: politeFetch, n: N, wantSexes: dimorph, onError: m => errors.push(m) }); }
   catch (e) { errors.push(e.message); }
   if (!list.length) {
     if (errors.length) { console.log(`FEHLER – ${errors[0]}`); failed.push(sp.de); }

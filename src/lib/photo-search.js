@@ -26,8 +26,13 @@ const BAD = new RegExp([
   '\\bdead\\b', '\\btot(er)?\\b', 'carcass', 'kadaver', 'roadkill',
   'sonagram', 'spectrogram', 'diagram', 'chart',
 ].join('|'), 'i');
-const MALE = /\b(male|männchen|mannchen|maschio|mâle|♂|drake|erpel|hahn)\b/i;
-const FEMALE = /\b(female|weibchen|femmina|femelle|♀|henne)\b/i;
+const MALE = /(\bmale\b|männchen|mannchen|maschio|mâle|♂|\bdrake\b|\berpel\b|\bhahn\b|\bcock\b)/i;
+const FEMALE = /(\bfemale\b|weibchen|femmina|femelle|♀|\bhenne?\b)/i;
+/** Geschlecht aus dem Dateinamen/Titel: 'm', 'f' oder '' (unbekannt oder beide) */
+export function detectSex(title) {
+  const m = MALE.test(title || ''), f = FEMALE.test(title || '');
+  return m && !f ? 'm' : f && !m ? 'f' : '';
+}
 
 const strip = v => String(v || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 
@@ -100,7 +105,7 @@ function toPhoto(page, sp, quality) {
     link: ii.descriptionurl || 'https://commons.wikimedia.org/wiki/' + encodeURIComponent(page.title),
     sp: sp.de,
     q: quality,
-    _sex: MALE.test(title) ? 'm' : FEMALE.test(title) ? 'f' : '',
+    sex: detectSex(title),
     _ratio: ratio,
   };
 }
@@ -120,12 +125,12 @@ export function selectPhotos(cands, n = 5) {
     byArtist.set(k, (byArtist.get(k) || 0) + 1);
     out.push(c);
   };
-  const m = pool.find(c => c._sex === 'm'); if (m) take(m);
-  const f = pool.find(c => c._sex === 'f'); if (f) take(f);
+  const m = pool.find(c => c.sex === 'm'); if (m) take(m);
+  const f = pool.find(c => c.sex === 'f'); if (f) take(f);
   pool.forEach(take);
   // falls der Fotografen-Filter zu streng war: auffüllen
   pool.forEach(c => { if (out.length < n && !out.includes(c)) out.push(c); });
-  return out.map(({ _sex, _ratio, ...rest }) => rest);
+  return out.map(({ _ratio, ...rest }) => rest);
 }
 
 /**
@@ -133,7 +138,7 @@ export function selectPhotos(cands, n = 5) {
  * @param {{de:string, sci:string, syn?:string[]}} sp
  * @param {{fetch:Function, n?:number}} opts
  */
-export async function findSpeciesPhotos(sp, { fetch: fetchFn, n = 5, onError = () => {} } = {}) {
+export async function findSpeciesPhotos(sp, { fetch: fetchFn, n = 5, onError = () => {}, wantSexes = false } = {}) {
   const sciNames = [sp.sci, ...(sp.syn || []).filter(s => /^[A-Z][a-z]+ [a-z]+$/.test(s))];
   let qid = null;
   for (const name of sciNames) {
@@ -156,5 +161,36 @@ export async function findSpeciesPhotos(sp, { fetch: fetchFn, n = 5, onError = (
   if (cands.length < n) {
     try { add(await commonsSearch(fetchFn, `intitle:"${sp.sci}" filetype:bitmap`, 30), 0); } catch (e) { onError(`Commons (Dateiname): ${e.message}`); }
   }
+  // Bei Arten mit deutlichem Geschlechtsunterschied gezielt nach ♂ und ♀ suchen
+  if (qid && wantSexes) {
+    for (const sex of ['m', 'f']) {
+      if (cands.some(c => c.sex === sex)) continue;
+      try { add(await commonsSearch(fetchFn, `haswbstatement:P180=${qid} ${SEX_TERMS[sex]}`, 30), 1); }
+      catch (e) { onError(`Commons (${sex === 'm' ? 'Männchen' : 'Weibchen'}): ${e.message}`); }
+    }
+  }
   return selectPhotos(cands, n);
+}
+
+const SEX_TERMS = { m: '(male OR männchen OR drake OR erpel)', f: '(female OR weibchen OR femelle)' };
+
+/** Ein Foto gezielt für ein Geschlecht ('m' oder 'f') suchen – oder null. */
+export async function findSexPhoto(sp, sex, { fetch: fetchFn, onError = () => {} } = {}) {
+  let qid = null;
+  for (const name of [sp.sci, ...(sp.syn || [])].filter(s => /^[A-Z][a-z]+ [a-z]+$/.test(s))) {
+    try { qid = await wikidataId(fetchFn, name); } catch (e) { onError(e.message); }
+    if (qid) break;
+  }
+  const searches = [
+    ...(qid ? [`haswbstatement:P180=${qid} ${SEX_TERMS[sex]}`] : []),
+    `intitle:"${sp.sci.split(' ').slice(0, 2).join(' ')}" ${SEX_TERMS[sex]} filetype:bitmap`,
+  ];
+  for (const q of searches) {
+    try {
+      const pages = await commonsSearch(fetchFn, q, 30);
+      const cands = pages.map(p => toPhoto(p, sp, 1)).filter(p => p && p.sex === sex);
+      if (cands.length) return selectPhotos(cands, 1)[0];
+    } catch (e) { onError(e.message); }
+  }
+  return null;
 }

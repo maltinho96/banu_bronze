@@ -12,7 +12,8 @@
  */
 import { load, save } from './store.js';
 import { norm, shuffle } from './util.js';
-import { findSpeciesPhotos, withRetry } from './photo-search.js';
+import { findSpeciesPhotos, findSexPhoto, detectSex, withRetry } from './photo-search.js';
+import { DIMORPH } from '../data/dimorph.js';
 
 const xcFiles = import.meta.glob('../data/audio.json', { eager: true, import: 'default' });
 const XC = Object.values(xcFiles)[0] || {};
@@ -234,6 +235,7 @@ export async function getSpeciesPhotos(sp) {
     try {
       list = await findSpeciesPhotos(sp, {
         fetch: withRetry(u => fetch(u), { tries: 3, baseDelay: 1500 }), n: 5,
+        wantSexes: !!DIMORPH[sp.de],
         onError: m => console.warn('Fotosuche', sp.de, m),
       });
     } catch (e) { console.warn('Fotosuche:', sp.de, e.message); }
@@ -281,8 +283,40 @@ export async function nextSpeciesPhoto(sp) {
   return list.find(x => x.src === src) || list[0];
 }
 
+/* ---------------- Männchen / Weibchen ----------------
+ * Für Arten mit Geschlechtsdimorphismus je ein Foto von ♂ und ♀.
+ * Zuerst aus den vorhandenen Fotos der Art (Geschlecht steht im Dateinamen),
+ * sonst gezielt auf Commons gesucht und im Browser gemerkt. */
+const sexOf = p => p?.sex || detectSex(p?.title);
+const sexInflight = new Map();
+export async function getSexPhotos(sp) {
+  if (!DIMORPH[sp.de]) return null;
+  const list = await getSpeciesPhotos(sp);
+  const res = { m: list.find(p => sexOf(p) === 'm') || null, f: list.find(p => sexOf(p) === 'f') || null };
+  if (res.m && res.f) return res;
+  const cache = load('sexPhotos', {});
+  const hit = cache[sp.sci];
+  if (hit && Date.now() - hit.t < AUTO_TTL) return { m: res.m || hit.m, f: res.f || hit.f };
+  if (sexInflight.has(sp.sci)) return sexInflight.get(sp.sci);
+  const job = (async () => {
+    const fetchFn = withRetry(u => fetch(u), { tries: 3, baseDelay: 1500 });
+    for (const sex of ['m', 'f']) {
+      if (res[sex]) continue;
+      try { res[sex] = await findSexPhoto(sp, sex, { fetch: fetchFn, onError: m => console.warn('♂/♀-Foto', sp.de, m) }); }
+      catch (e) { console.warn('♂/♀-Foto', sp.de, e.message); }
+    }
+    const all = load('sexPhotos', {});
+    all[sp.sci] = { t: Date.now(), m: res.m, f: res.f };
+    save('sexPhotos', all);
+    return res;
+  })();
+  sexInflight.set(sp.sci, job);
+  try { return await job; } finally { sexInflight.delete(sp.sci); }
+}
+export { sexOf };
+
 /** Automatisch gesuchte Fotos vergessen (z. B. nach einer Bildauswahl im Kurator). */
-export function clearAutoPhotos() { save('autoPhotos', {}); save('photoRot', {}); }
+export function clearAutoPhotos() { save('autoPhotos', {}); save('photoRot', {}); save('sexPhotos', {}); }
 export function autoPhotoCount() { return Object.keys(load('autoPhotos', {})).length; }
 
 /* ---------------- Lebensraumfoto ---------------- */

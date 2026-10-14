@@ -3,7 +3,8 @@ import { load, save, recordResult, stats, weight } from '../lib/store.js';
 import { getSpeciesList } from '../data/species.js';
 import { HAB_LABEL, habMain, habAll, sciBase } from '../data/species-builtin.js';
 import { MERK } from '../data/merksaetze.js';
-import { getBirdMedia, getHabitatImage, getAudio, setAudioSources, nextSpeciesPhoto, nextAudioIndex } from '../lib/media.js';
+import { DIMORPH, SEX_LABEL } from '../data/dimorph.js';
+import { getBirdMedia, getHabitatImage, getAudio, setAudioSources, nextSpeciesPhoto, nextAudioIndex, getSexPhotos, sexOf } from '../lib/media.js';
 
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 const SND_LABEL = { song: 'Gesang', call: 'Ruf', drumming: 'Trommeln' };
@@ -108,6 +109,7 @@ export function mount(root) {
   const rChips = h('div', { class: 'chips' });
   const rHab = h('p', { class: 'rhab' });
   const rMerk = h('p', { class: 'merk', hidden: true });
+  const rSex = h('div', { class: 'sexbox', hidden: true });
   const rImg = h('img', { alt: '', loading: 'lazy' });
   const rImgWrap = h('div', { class: 'rimg', hidden: true }, rImg);
   const rExtract = h('p', { class: 'extract' });
@@ -118,7 +120,7 @@ export function mount(root) {
   const nextBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => grade(verdict) }, 'Weiter');
   const flipBtn = h('button', { class: 'btn ghost', type: 'button', onclick: () => { verdict = !verdict; paintVerdict(); } });
   const revealBox = h('div', { class: 'reveal', hidden: true },
-    rVerdict, rName, rSci, rMerk, rHab, rChips, rImgWrap, rExtract,
+    rVerdict, rName, rSci, rMerk, rHab, rChips, rSex, rImgWrap, rExtract,
     rCredit,
     h('div', { class: 'links' }, rWiki, rXC, listenBtn),
     h('div', { class: 'grade' }, flipBtn, nextBtn));
@@ -322,6 +324,7 @@ export function mount(root) {
     rXC.href = `https://xeno-canto.org/species/${sciBase(sp).replace(/ /g, '-')}`;
     listenBtn.hidden = mode === 'akustisch';
     listenBtn.textContent = `${SND_LABEL[sp.snd] || 'Stimme'} anhören`;
+    showSexes(sp, mode !== 'akustisch' ? shownPhoto : null);
     rCredit.innerHTML = '';
     if (mode !== 'akustisch' && shownPhoto) {
       const who = [shownPhoto.by, shownPhoto.lic].filter(Boolean).join(' · ');
@@ -380,6 +383,32 @@ export function mount(root) {
     endScreen.scrollIntoView({ behavior: 'smooth' });
   }
 
+  /* ---------- Männchen und Weibchen nebeneinander ---------- */
+  function showSexes(sp, shown) {
+    const d = DIMORPH[sp.de];
+    rSex.innerHTML = '';
+    rSex.hidden = !d;
+    if (!d) return;
+    const shownSex = sexOf(shown);
+    const fig = sex => {
+      const img = h('img', { alt: SEX_LABEL[sex], loading: 'lazy', hidden: true });
+      const ph = h('div', { class: 'sex-ph' }, 'Lade Foto …');
+      const el = h('figure', { class: 'sexfig' + (shownSex === sex ? ' is-shown' : '') },
+        h('div', { class: 'sex-img' }, img, ph),
+        h('figcaption', {}, h('b', {}, SEX_LABEL[sex] + (shownSex === sex ? ' – gerade gezeigt' : '')), d[sex]));
+      return { el, img, ph };
+    };
+    const m = fig('m'), f = fig('f');
+    rSex.append(h('p', { class: 'sex-title' }, 'Männchen und Weibchen unterscheiden sich:'), h('div', { class: 'sexgrid' }, m.el, f.el));
+    getSexPhotos(sp).then(r => {
+      if (deck[idx]?.sp !== sp) return;
+      [[m, r?.m], [f, r?.f]].forEach(([x, p]) => {
+        if (p?.thumb) { x.img.src = p.thumb; x.img.hidden = false; x.ph.hidden = true; }
+        else x.ph.textContent = 'Kein Foto gefunden';
+      });
+    });
+  }
+
   /* ---------- Artenliste zum Lernen ---------- */
   function showList() {
     listView.hidden = false; listView.innerHTML = '';
@@ -421,6 +450,7 @@ export function mount(root) {
             ...(sp.hab || []).map(k => h('span', { class: 'chip hab' }, HAB_LABEL[k]))),
           sp.hl ? h('p', { class: 'rhab' }, h('small', {}, 'Bruthabitat'), h('b', {}, sp.hl)) : null,
           MERK[sp.de] ? h('p', { class: 'merk' }, h('small', {}, 'Merksatz'), MERK[sp.de]) : null,
+          DIMORPH[sp.de] ? h('p', { class: 'sexnote' }, h('b', {}, '♂ '), DIMORPH[sp.de].m, h('br'), h('b', {}, '♀ '), DIMORPH[sp.de].f) : null,
           playBtn, player2, note,
           h('div', { class: 'links' },
             h('a', { href: `https://de.wikipedia.org/wiki/${encodeURIComponent(sp.de)}`, target: '_blank', rel: 'noopener' }, 'Wikipedia'),
